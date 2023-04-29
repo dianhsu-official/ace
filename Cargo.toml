@@ -1,0 +1,18 @@
+[package]
+name = "ace"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.2.4", features = ["derive"] }
+home = "0.5.5"
+log = "0.4.17"
+reqwest = "0.11.16"
+rpassword = "7.2.0"
+serde = "1.0.160"
+serde_derive = "1.0.160"
+serde_yaml = "0.9.21"
+simple-home-dir = "0.1.2"
+simple_logger = { version = "4.1.0", features = ["colors"] }
