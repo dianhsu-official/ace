@@ -1,7 +1,9 @@
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::fs::File;
+use std::io;
 use std::io::Read;
+use std::io::Write;
 use std::path::Path;
 use std::process;
 
@@ -32,8 +34,10 @@ impl Config {
                 generate_template: false,
             }
         } else {
+            log::info!("{}", path.display());
             let mut file = match File::open(&path) {
-                Err(_) => {
+                Err(err) => {
+                    log::error!("Open file failed. {}", err);
                     process::exit(101);
                 }
                 Ok(file) => file,
@@ -49,6 +53,26 @@ impl Config {
                 }
             }
             serde_yaml::from_str(s.as_str()).unwrap()
+        }
+    }
+    pub fn save(&mut self, path: &Path) -> Result<(), io::Error>{
+        let mut file = match File::create(&path) {
+            Ok(file) => file,
+            Err(err) => {
+                log::error!("Save file failed. {}", err);
+                process::exit(101);
+            }
+        };
+        let write_str = match serde_yaml::to_string(&self) {
+            Ok(config) => config,
+            Err(err) => {
+                log::error!("Save file failed. {}", err);
+                process::exit(101);
+            }
+        };
+        match file.write_all(write_str.as_bytes()) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
         }
     }
 }
