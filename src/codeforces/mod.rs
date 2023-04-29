@@ -1,5 +1,5 @@
+use reqwest::{cookie::Jar, Url};
 use serde_derive::{Deserialize, Serialize};
-
 #[derive(Serialize, Deserialize)]
 pub struct Account {
     pub handle: String,
@@ -21,7 +21,7 @@ impl Codeforces {
     }
     #[allow(unused)]
     pub fn login(&mut self) {
-        unimplemented!()
+        let jar = Jar::default();
     }
     #[allow(unused)]
     pub fn parse(&mut self) {
@@ -29,4 +29,5 @@ impl Codeforces {
     }
     #[allow(unused)]
     pub fn submit(&mut self) {}
+
 }
