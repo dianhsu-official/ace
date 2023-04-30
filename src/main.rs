@@ -10,6 +10,7 @@ use command::Cli;
 use config::Config;
 
 fn main() {
+    #[cfg(debug_assertions)]
     env_logger::builder()
         .format(|buf, record| {
             writeln!(
@@ -24,7 +25,21 @@ fn main() {
         })
         .filter_level(log::LevelFilter::Debug)
         .init();
-
+    #[cfg(not(debug_assertions))]
+    env_logger::builder()
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "[{}:{}] [{}] [{}] - {}",
+                record.file().unwrap_or("unknown"),
+                record.line().unwrap_or(0),
+                chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                record.level(),
+                record.args()
+            )
+        })
+        .filter_level(log::LevelFilter::Info)
+        .init();
     let pathbuf = home::home_dir().unwrap();
     let config_dir = pathbuf.join(".ace");
     create_dir_all(&config_dir).unwrap();

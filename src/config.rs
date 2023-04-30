@@ -52,10 +52,16 @@ impl Config {
                     log::debug!("successfully read from {}", path.display());
                 }
             }
-            serde_yaml::from_str(s.as_str()).unwrap()
+            match serde_yaml::from_str(s.as_str()) {
+                Ok(config) => config,
+                Err(err) => {
+                    log::error!("Load config error, {}", err);
+                    process::exit(1);
+                }
+            }
         }
     }
-    pub fn save(&mut self, path: &Path) -> Result<(), io::Error>{
+    pub fn save(&mut self, path: &Path) -> Result<(), io::Error> {
         let mut file = match File::create(&path) {
             Ok(file) => file,
             Err(err) => {

@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{fs::File, io::Write, path::Path, sync::Arc};
 
 use reqwest::{
     blocking::Client as ReqwestClient,
     cookie::{CookieStore, Jar},
-    header::HeaderValue,
+    header::{HeaderValue, SET_COOKIE},
     Url,
 };
 
@@ -28,6 +28,8 @@ impl Client {
         let cookies_store = Arc::new(load_cookie_store(cookies, endpoint)?);
         let client = reqwest::blocking::ClientBuilder::new()
             .cookie_provider(cookies_store.clone())
+            .cookie_store(true)
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36")
             .build()
             .unwrap();
         Ok(Self {
@@ -54,9 +56,54 @@ impl Client {
         if !res.status().is_success() {
             return Err(format!("Request error, request url: {}", url));
         }
+        if res.headers().contains_key(SET_COOKIE){
+            self.cookies_store.add_cookie_str(res.headers().get(SET_COOKIE).unwrap().to_str().unwrap(), &self.endpoint.parse::<Url>().unwrap());
+        }
+        log::debug!("cookies: {}", self.save_cookies());
         match res.text() {
-            Ok(text) => Ok(text),
+            Ok(text) => {
+                Ok(text)
+            }
             Err(err) => Err(format!("Get body error, {}", err)),
+        }
+    }
+    pub fn post_form(&mut self, url: &str, form: &[(&str, &str)]) -> Result<String, String> {
+        let res = match self.client.post(url).form(form).send() {
+            Ok(res) => res,
+            Err(err) => return Err(format!("Request error, {}", err)),
+        };
+        if !res.status().is_success() {
+            return Err(format!("Request error, request url: {}", url));
+        }
+        if res.headers().contains_key(SET_COOKIE){
+            self.cookies_store.add_cookie_str(res.headers().get(SET_COOKIE).unwrap().to_str().unwrap(), &self.endpoint.parse::<Url>().unwrap());
+        }
+        log::debug!("cookies: {}", self.save_cookies());
+
+        match res.text() {
+            Ok(text) => {
+                Ok(text)
+            }
+            Err(err) => Err(format!("Post form error, {}", err)),
+        }
+    }
+    #[allow(unused)]
+    pub fn debug_save(text: &str, suffix: &str) {
+        let mut save_path = random_str::get_string(10, true, false, false, false);
+        save_path.push_str(suffix);
+        let path = Path::new(save_path.as_str());
+        match File::create(path) {
+            Ok(mut file) => match file.write_all(text.as_bytes()) {
+                Ok(_) => {
+                    log::info!("debug content write to {}", path.display());
+                }
+                Err(_) => {
+                    log::error!("write content failed.");
+                }
+            },
+            Err(_) => {
+                log::error!("Write content failed.");
+            }
         }
     }
 }
