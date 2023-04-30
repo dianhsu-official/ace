@@ -1,6 +1,7 @@
 mod codeforces;
 mod command;
 mod config;
+mod http;
 mod tool;
 use std::fs::create_dir_all;
 use std::io::Write;

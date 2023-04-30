@@ -2,11 +2,7 @@ use std::{env::current_dir, path::Path, process};
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use crate::{
-    codeforces::{self},
-    config::Config,
-    tool::Tool,
-};
+use crate::{config::Config, tool::Tool};
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
@@ -63,10 +59,6 @@ impl Cli {
             }
             Commands::Account(args) => match args.platform {
                 Platform::Cf => {
-                    let accounts = &mut config.cf.accounts;
-                    for idx in 0..accounts.len() {
-                        println!("{}: {}", idx, accounts[idx].handle)
-                    }
                     let mut idx = -1;
                     while idx != 0 {
                         println!("Choose your operation: ");
@@ -78,45 +70,36 @@ impl Cli {
                         idx = Tool::choose_index(5);
                         match idx {
                             0 => {}
-                            1 => {
-                                for idx in 0..accounts.len() {
-                                    println!("{}: {}", idx, accounts[idx].handle)
-                                }
-                            }
+                            1 => config.cf.list_accont(),
                             2 => {
-                                let handle = Tool::get_input(
-                                    "Please input your handle name or email address: ",
-                                );
-                                let password =
-                                    Tool::get_password_input("Please input your password: ");
-                                accounts.push(codeforces::Account {
-                                    handle,
-                                    password,
-                                    ftaa: String::new(),
-                                    bfaa: String::new(),
-                                });
+                                let account = config.cf.add_account();
+                                match config.cf.add_account() {
+                                    Ok(account) => {
+                                        config.cf.accounts.push(account)
+                                    },
+                                    Err(err) => {
+                                        println!("{}", err);
+                                    }
+                                }
                             }
                             3 => {
-                                for idx in 0..accounts.len() {
-                                    println!("{}: {}", idx, accounts[idx].handle)
-                                }
-                                let rdx = Tool::choose_index(accounts.len().try_into().unwrap());
-                                let account = accounts.remove(rdx.try_into().unwrap());
+                                config.cf.list_accont();
+                                let rdx = Tool::choose_index(
+                                    config.cf.accounts.len().try_into().unwrap(),
+                                );
+                                let account = config.cf.accounts.remove(rdx.try_into().unwrap());
                                 println!("Account \"{}\" removed.", account.handle);
                             }
                             4 => {
-                                for idx in 0..accounts.len() {
-                                    println!("{}: {}", idx, accounts[idx].handle)
-                                }
-                                let rdx = Tool::choose_index(accounts.len().try_into().unwrap());
-                                let account = accounts.remove(rdx.try_into().unwrap());
+                                config.cf.list_accont();
+                                let rdx = Tool::choose_index(
+                                    config.cf.accounts.len().try_into().unwrap(),
+                                );
+                                let account = config.cf.accounts.remove(rdx.try_into().unwrap());
                                 println!("Set account \"{}\" as default.", account.handle);
-                                accounts.insert(0, account);
+                                config.cf.accounts.insert(0, account);
                             }
-                            _ => {
-                                println!("Index out of range.");
-                                idx = -1;
-                            }
+                            _ => println!("Index out of range."),
                         }
                     }
                 }

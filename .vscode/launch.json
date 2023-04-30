@@ -7,22 +7,14 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'ace'",
+            "name": "Cargo launch",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=ace",
-                    "--package=ace"
-                ],
-                "filter": {
-                    "name": "ace",
-                    "kind": "bin"
-                }
+                    "--lib"
+                ]
             },
-            "args": [
-                "account"
-            ],
-            "cwd": "${workspaceFolder}"
-        }
+            "args": []
+        },
     ]
 }

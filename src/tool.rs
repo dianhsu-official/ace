@@ -1,4 +1,3 @@
-use reqwest::{cookie::{Jar, CookieStore}, Url};
 use rpassword::read_password;
 use std::io::{self, stdout, Write};
 
@@ -34,23 +33,5 @@ impl Tool {
             }
         }
         return idx;
-    }
-    pub fn save_cookies(jar: Jar, url: &str) -> String {
-        let cookies = jar.cookies(&url.parse::<Url>().unwrap());
-        let mut res = String::new();
-        for header in cookies{
-            match header.to_str() {
-                Ok(cookie) => {
-                    res.push_str(cookie);
-                },
-                Err(_) => {},
-            }
-        };
-        return res;
-    }
-    pub fn load_cookies(cookies: &str, url: &str) -> Jar {
-        let jar = Jar::default();
-        jar.add_cookie_str(cookies, &url.parse::<Url>().unwrap());
-        return jar;
     }
 }
