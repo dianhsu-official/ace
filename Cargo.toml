@@ -6,18 +6,20 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+aes = "0.8.2"
 chrono = "0.4.24"
 clap = { version = "4.2.4", features = ["derive"] }
+colored = "2.0.0"
+dialoguer = "0.10.4"
 env_logger = "0.10.0"
 hex = "0.4.3"
 home = "0.5.5"
 log = "0.4.17"
+rand = "0.8.5"
 random_str = "0.1.1"
 regex = "1.8.1"
 reqwest = { version = "0.11.16", features = ["cookies", "json", "rustls-tls", "blocking"], default-features = false }
 reqwest_cookie_store = "0.5.0"
-rpassword = "7.2.0"
 serde = "1.0.160"
 serde_derive = "1.0.160"
 serde_yaml = "0.9.21"
-simple-home-dir = "0.1.2"

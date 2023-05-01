@@ -67,21 +67,25 @@ impl Cli {
                         println!("2) Add account");
                         println!("3) Remove account");
                         println!("4) Set default account.");
-                        idx = Tool::choose_index(5);
+                        println!("5) Check accounts.");
+
+                        idx = Tool::choose_index(6);
                         match idx {
                             0 => {}
                             1 => config.cf.list_accont(),
-                            2 => {
-                                let account = config.cf.add_account();
-                                match config.cf.add_account() {
-                                    Ok(account) => {
-                                        config.cf.accounts.push(account)
-                                    },
-                                    Err(err) => {
-                                        println!("{}", err);
+                            2 => match config.cf.add_account() {
+                                Ok(account) => {
+                                    println!("Add account {} successed.", &account.handle);
+                                    config.cf.accounts.push(account);
+                                    match config.save(config_path) {
+                                        Ok(_) => {}
+                                        Err(_) => {}
                                     }
                                 }
-                            }
+                                Err(err) => {
+                                    println!("{}", err);
+                                }
+                            },
                             3 => {
                                 config.cf.list_accont();
                                 let rdx = Tool::choose_index(
@@ -99,6 +103,7 @@ impl Cli {
                                 println!("Set account \"{}\" as default.", account.handle);
                                 config.cf.accounts.insert(0, account);
                             }
+                            5 => config.cf.check_accounts(),
                             _ => println!("Index out of range."),
                         }
                     }

@@ -13,6 +13,8 @@ fn main() {
     #[cfg(debug_assertions)]
     env_logger::builder()
         .format(|buf, record| {
+            let mut style = buf.style();
+            style.set_bold(true);
             writeln!(
                 buf,
                 "[{}:{}] [{}] [{}] - {}",
@@ -20,10 +22,10 @@ fn main() {
                 record.line().unwrap_or(0),
                 chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
                 record.level(),
-                record.args()
+                style.value(record.args())
             )
         })
-        .filter_level(log::LevelFilter::Debug)
+        .filter_level(log::LevelFilter::Info)
         .init();
     #[cfg(not(debug_assertions))]
     env_logger::builder()
