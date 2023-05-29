@@ -55,7 +55,7 @@ impl Cli {
                 let platform_name = match args.platform {
                     Platform::Cf => "Codeforces",
                 };
-                println!("{}, {}", platform_name, args.identifier);
+                config.cf.parse(&args.identifier);
             }
             Commands::Account(args) => match args.platform {
                 Platform::Cf => {
@@ -72,7 +72,7 @@ impl Cli {
                         idx = Tool::choose_index(6);
                         match idx {
                             0 => {}
-                            1 => config.cf.list_accont(),
+                            1 => config.cf.list_accounts(),
                             2 => match config.cf.add_account() {
                                 Ok(account) => {
                                     println!("Add account {} successed.", &account.handle);
@@ -87,7 +87,7 @@ impl Cli {
                                 }
                             },
                             3 => {
-                                config.cf.list_accont();
+                                config.cf.list_accounts();
                                 let rdx = Tool::choose_index(
                                     config.cf.accounts.len().try_into().unwrap(),
                                 );
@@ -95,7 +95,7 @@ impl Cli {
                                 println!("Account \"{}\" removed.", account.handle);
                             }
                             4 => {
-                                config.cf.list_accont();
+                                config.cf.list_accounts();
                                 let rdx = Tool::choose_index(
                                     config.cf.accounts.len().try_into().unwrap(),
                                 );

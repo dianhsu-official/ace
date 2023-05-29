@@ -1,5 +1,7 @@
+mod contest;
 use crate::{http, tool::Tool};
 
+use colored::Colorize;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone)]
@@ -99,7 +101,7 @@ impl Codeforces {
             accounts: Vec::new(),
         }
     }
-    pub fn list_accont(&mut self) {
+    pub fn list_accounts(&mut self) {
         for idx in 0..self.accounts.len() {
             println!("{}: {}", idx, self.accounts[idx].handle)
         }
@@ -128,10 +130,12 @@ impl Codeforces {
             Err("login failed".to_string())
         }
     }
-    #[allow(unused)]
-    pub fn parse(&mut self) {
-        unimplemented!()
+    pub fn parse(&mut self, identifier: &str) {
+        let url = format!("{}/contest/{}", self.host, identifier);
+        println!("Parse contest from {}", url.green());
     }
     #[allow(unused)]
-    pub fn submit(&mut self) {}
+    pub fn submit(&mut self) {
+        unimplemented!()
+    }
 }

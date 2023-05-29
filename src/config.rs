@@ -34,7 +34,6 @@ impl Config {
                 generate_template: false,
             }
         } else {
-            log::info!("{}", path.display());
             let mut file = match File::open(&path) {
                 Err(err) => {
                     log::error!("Open file failed. {}", err);
