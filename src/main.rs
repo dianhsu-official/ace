@@ -1,55 +1,11 @@
-mod codeforces;
+use once_cell::sync::Lazy;
+use sqlite::ConnectionWithFullMutex;
 mod command;
 mod config;
-mod http;
-mod tool;
-use std::fs::create_dir_all;
-use std::io::Write;
-
-use command::Cli;
-use config::Config;
-
+mod misc;
+mod platform;
+pub static CONN: Lazy<ConnectionWithFullMutex> = Lazy::new(|| misc::init_database_configuration());
 fn main() {
-    #[cfg(debug_assertions)]
-    env_logger::builder()
-        .format(|buf, record| {
-            let mut style = buf.style();
-            style.set_bold(true);
-            writeln!(
-                buf,
-                "[{}:{}] [{}] [{}] - {}",
-                record.file().unwrap_or("unknown"),
-                record.line().unwrap_or(0),
-                chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
-                record.level(),
-                style.value(record.args())
-            )
-        })
-        .filter_level(log::LevelFilter::Info)
-        .init();
-    #[cfg(not(debug_assertions))]
-    env_logger::builder()
-        .format(|buf, record| {
-            writeln!(
-                buf,
-                "[{}:{}] [{}] [{}] - {}",
-                record.file().unwrap_or("unknown"),
-                record.line().unwrap_or(0),
-                chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
-                record.level(),
-                record.args()
-            )
-        })
-        .filter_level(log::LevelFilter::Info)
-        .init();
-    let pathbuf = home::home_dir().unwrap();
-    let config_dir = pathbuf.join(".ace");
-    create_dir_all(&config_dir).unwrap();
-
-    let binding = config_dir.join("config.yaml");
-    let config_path = binding.as_path();
-    let mut config = Config::new(&config_path);
-
-    Cli::run(&mut config, &config_path);
-    config.save(&config_dir.join("config.yaml")).unwrap();
+    misc::init_logger_configuration();
+    command::Cli::run();
 }
