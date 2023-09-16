@@ -1,8 +1,6 @@
-use sqlite;
-use std::fs::create_dir_all;
 use std::io::Write;
-use std::process::exit;
 
+pub mod database;
 pub mod http_client;
 pub mod utility;
 pub fn init_logger_configuration() {
@@ -38,25 +36,4 @@ pub fn init_logger_configuration() {
         })
         .filter_level(log::LevelFilter::Info)
         .init();
-}
-pub fn init_database_configuration() -> sqlite::ConnectionWithFullMutex {
-    let pathbuf = home::home_dir().unwrap();
-    let config_dir = pathbuf.join(".ace");
-    create_dir_all(&config_dir).unwrap();
-
-    let binding = config_dir.join("config.db");
-    let config_path = binding.as_path();
-    let connection: sqlite::ConnectionWithFullMutex = match sqlite::Connection::open_with_full_mutex(config_path) {
-        Ok(conn) => conn,
-        Err(info) => {
-            log::error!("{}", info);
-            exit(1);
-        }
-    };
-    let query = "
-    CREATE TABLE IF NOT EXISTS global (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, value TEXT);
-    CREATE TABLE IF NOT EXISTS account (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, username TEXT, password TEXT, cookies TEXT, current INTEGER DEFAULT 0);
-";
-    connection.execute(query).unwrap();
-    connection
 }
