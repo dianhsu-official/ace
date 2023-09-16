@@ -3,8 +3,8 @@ use std::fs::create_dir_all;
 use std::io::Write;
 use std::process::exit;
 
-pub mod http;
-pub mod tool;
+pub mod http_client;
+pub mod utility;
 pub fn init_logger_configuration() {
     #[cfg(debug_assertions)]
     env_logger::builder()
