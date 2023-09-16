@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+mod config;
 use crate::misc::http_client::HttpClient;
 use crate::platform::lib::OnlineJudge;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
@@ -113,4 +113,3 @@ impl Codeforces {
         return hex::encode(blk);
     }
 }
-
