@@ -15,18 +15,18 @@ pub struct HttpClient {
 
 impl HttpClient {
     #[allow(unused)]
-    pub fn new(cookies: &str, endpoint: &str) -> Result<Self, String> {
-        let cookies_store = Arc::new(Self::load_cookie_store(cookies, endpoint)?);
+    pub fn new(cookies: &str, endpoint: &str) -> Self {
+        let cookies_store = Arc::new(Self::load_cookie_store(cookies, endpoint).unwrap());
         let client = reqwest::blocking::ClientBuilder::new()
             .cookie_provider(cookies_store.clone())
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36")
             .build()
             .unwrap();
-        Ok(Self {
+        Self {
             client: client,
             cookies_store: cookies_store,
             endpoint: endpoint.to_string(),
-        })
+        }
     }
     #[allow(unused)]
     pub fn save_cookies(&mut self) -> String {
@@ -57,14 +57,23 @@ impl HttpClient {
     }
 
     #[allow(unused)]
-    pub fn post_form(&mut self, url: &str, form: &[(&str, &str)]) -> Result<String, String> {
+    pub fn post_form(
+        &mut self,
+        url: &str,
+        form: &HashMap<String, String>,
+    ) -> Result<String, String> {
         log::info!("post data to {}.", url);
         let res = match self.client.post(url).form(&form).send() {
             Ok(res) => res,
             Err(err) => return Err(format!("Request error, {}", err)),
         };
         if !res.status().is_success() {
-            return Err(format!("Request error, request url: {}", url));
+            return Err(format!(
+                "Request error, request url: {}, status: {}, error: {}",
+                url,
+                res.status(),
+                res.text_with_charset("utf-8").unwrap()
+            ));
         }
         match res.text() {
             Ok(text) => Ok(text),
@@ -83,7 +92,12 @@ impl HttpClient {
             Err(err) => return Err(format!("Request error, {}", err)),
         };
         if !res.status().is_success() {
-            return Err(format!("Request error, request url: {}", url));
+            return Err(format!(
+                "Request error, request url: {}, status: {}, error: {}",
+                url,
+                res.status(),
+                res.text_with_charset("utf-8").unwrap()
+            ));
         }
         match res.text() {
             Ok(text) => Ok(text),
@@ -123,18 +137,20 @@ impl HttpClient {
 
 #[test]
 fn test_client() {
-    let url = "https://baidu.com";
-    let mut client = HttpClient::new("", url).unwrap();
-    match client.get("https://baidu.com") {
+    let url = "https://codeforces.com";
+    let mut client = HttpClient::new("", url);
+    match client.get("https://codeforces.com/enter") {
         Ok(resp) => {
-            log::debug!("{}", resp);
+            use std::fs::File;
+            let mut file = File::create("test.html").unwrap();
+            file.write_all(resp.as_bytes()).unwrap();
             assert!(resp.is_empty() == false)
         }
         Err(err) => {
-            log::error!("{}", err);
+            print!("{}", err);
         }
     }
     let cookies = client.save_cookies();
-    log::debug!("{}", cookies);
+    print!("{}", cookies);
     assert_ne!(cookies.len(), 0);
 }
