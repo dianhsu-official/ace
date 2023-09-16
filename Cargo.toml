@@ -22,7 +22,7 @@ random_str = "0.1.1"
 regex = "1.8.1"
 reqwest = { version = "0.11.16", features = ["cookies", "json", "rustls-tls", "blocking"], default-features = false }
 reqwest_cookie_store = "0.6.0"
-serde = "1.0.160"
+serde = { version = "1.0.160", features = ["derive"] }
 serde_derive = "1.0.160"
 serde_yaml = "0.9.21"
 sqlite = "0.31.0"

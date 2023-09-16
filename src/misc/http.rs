@@ -13,19 +13,10 @@ pub struct Client {
     endpoint: String,
 }
 
-fn load_cookie_store(cookies: &str, endpoint: &str) -> Result<Jar, String> {
-    let url = endpoint.parse().unwrap();
-    let jar = reqwest::cookie::Jar::default();
-    let v = cookies
-        .split("; ")
-        .map(|s| HeaderValue::from_str(s).unwrap())
-        .collect::<Vec<_>>();
-    jar.set_cookies(&mut v.iter(), &url);
-    Ok(jar)
-}
 impl Client {
+    #[allow(unused)]
     pub fn new(cookies: &str, endpoint: &str) -> Result<Self, String> {
-        let cookies_store = Arc::new(load_cookie_store(cookies, endpoint)?);
+        let cookies_store = Arc::new(Client::load_cookie_store(cookies, endpoint)?);
         let client = reqwest::blocking::ClientBuilder::new()
             .cookie_provider(cookies_store.clone())
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36")
@@ -37,6 +28,7 @@ impl Client {
             endpoint: endpoint.to_string(),
         })
     }
+    #[allow(unused)]
     pub fn save_cookies(&mut self) -> String {
         let mut cookies = String::new();
         if let Some(cookie) = self
@@ -47,6 +39,8 @@ impl Client {
         }
         return cookies;
     }
+
+    #[allow(unused)]
     pub fn get(&mut self, url: &str) -> Result<String, String> {
         log::info!("get data from {}.", url);
         let res = match self.client.get(url).send() {
@@ -61,6 +55,8 @@ impl Client {
             Err(err) => Err(format!("Get body error, {}", err)),
         }
     }
+
+    #[allow(unused)]
     pub fn post_form(&mut self, url: &str, form: &[(&str, &str)]) -> Result<String, String> {
         log::info!("post data to {}.", url);
         let res = match self.client.post(url).form(form).send() {
@@ -93,6 +89,16 @@ impl Client {
                 log::error!("Write content failed.");
             }
         }
+    }
+    pub fn load_cookie_store(cookies: &str, endpoint: &str) -> Result<Jar, String> {
+        let url = endpoint.parse().unwrap();
+        let jar = reqwest::cookie::Jar::default();
+        let v = cookies
+            .split("; ")
+            .map(|s| HeaderValue::from_str(s).unwrap())
+            .collect::<Vec<_>>();
+        jar.set_cookies(&mut v.iter(), &url);
+        Ok(jar)
     }
 }
 

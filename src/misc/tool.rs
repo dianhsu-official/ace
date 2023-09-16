@@ -1,17 +1,20 @@
 use colored::Colorize;
 
-pub struct Tool {}
+pub struct Tool;
 impl Tool {
+    #[allow(unused)]
     pub fn get_input(prompt: &str) -> String {
         let input = dialoguer::Input::<String>::new()
             .with_prompt(prompt)
             .interact();
         return input.unwrap();
     }
+    #[allow(unused)]
     pub fn get_password_input(prompt: &str) -> String {
         let password = dialoguer::Password::new().with_prompt(prompt).interact();
         return password.unwrap();
     }
+    #[allow(unused)]
     pub fn choose_index(max_size: i32) -> i32 {
         let prompt = format!("Choose index from [0, {}]", max_size - 1);
         let re_prompt = format!(
@@ -31,6 +34,4 @@ impl Tool {
         }
         return idx;
     }
-
-    
 }

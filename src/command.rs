@@ -1,5 +1,3 @@
-use std::{env::current_dir, path::Path, process};
-
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
@@ -18,7 +16,7 @@ pub enum Commands {
     /// Manage account
     Account(AccountArgs),
     // Config
-    Config
+    Config,
 }
 #[derive(Args)]
 pub struct ParseArgs {
@@ -38,6 +36,5 @@ impl Cli {
     #[allow(unused_variables)]
     pub fn run() {
         let cli = Cli::parse();
-        
     }
 }
