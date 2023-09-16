@@ -17,7 +17,6 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - x86_64-pc-windows-gnu
-          - aarch64-unknown-linux-gnu
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust
@@ -37,33 +36,3 @@ jobs:
       shell: bash
       run: cross build --target ${{ matrix.target }} 
   
-  build-unix:
-    runs-on: ${{ matrix.os }}
-    env:
-      RUST_BACKTRACE: full
-    strategy:
-      matrix:
-        os: [macos-latest]
-        target:
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Install GNU tar
-        if: runner.os == 'macOS'
-        run: |
-          brew install gnu-tar
-          # echo "::add-path::/usr/local/opt/gnu-tar/libexec/gnubin"
-          echo "/usr/local/opt/gnu-tar/libexec/gnubin" >> $GITHUB_PATH
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: ${{ matrix.target }}
-          toolchain: nightly
-          default: true
-          override: true
-      - name: Build ${{ matrix.target }}
-        run: cargo build --target ${{ matrix.target }}
