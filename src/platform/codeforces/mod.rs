@@ -9,10 +9,53 @@ pub struct Codeforces {
 }
 
 impl OnlineJudge for Codeforces {
-    fn submit(&mut self) -> String {
-        String::from("Codeforces submit")
+    ///
+    /// Get the problem list of the platform.
+    /// identifier: the identifier of the problem.
+    ///             For example, the identifier of the problem https://codeforces.com/problemset/problem/4/A is 4_A.
+    fn submit(&mut self, identifier: &str, code: &str, lang_id: &str) -> Result<String, String> {
+        let info: Vec<&str> = identifier.split("_").collect();
+        let contest_id = info[0];
+        let problem_id = info[1];
+        let submit_page_url = format!("https://codeforces.com/contest/{}/submit", contest_id);
+        let submit_page = match self.client.get(&submit_page_url) {
+            Ok(page) => page,
+            Err(err) => {
+                return Err(String::from("unable to get submit page, ") + err.as_str());
+            }
+        };
+        let mut params: HashMap<String, String> = HashMap::new();
+        params.insert(String::from("csrf_token"), Self::get_csrf(&submit_page));
+        params.insert(String::from("ftaa"), Self::get_ftaa());
+        params.insert(String::from("bfaa"), Self::get_bfaa());
+        params.insert(
+            String::from("action"),
+            String::from("submitSolutionFormSubmitted"),
+        );
+        params.insert(
+            String::from("submittedProblemIndex"),
+            problem_id.to_string(),
+        );
+        params.insert(String::from("submittedProblemCode"), String::from("4_A"));
+        params.insert(String::from("programTypeId"), lang_id.to_string());
+        params.insert(String::from("source"), code.to_string());
+        params.insert(String::from("tabSize"), String::from("4"));
+        params.insert(String::from("_tta"), String::from("176"));
+        let submit_url = format!(
+            "{}?csrf_token={}",
+            submit_page_url,
+            Self::get_csrf(&submit_page)
+        );
+        let resp = match self.client.post_form(&submit_url, &params) {
+            Ok(resp) => resp,
+            Err(err) => {
+                return Err(String::from("Submit failed, ") + err.as_str());
+            }
+        };
+        return Ok(resp);
     }
 
+    /// Check if the user is logged in.
     fn is_login(&mut self) -> Result<String, bool> {
         let main_page = self.client.get("https://codeforces.com").unwrap();
         let re = match Regex::new(r#"handle = "([\s\S]+?)""#) {
@@ -26,6 +69,7 @@ impl OnlineJudge for Codeforces {
         return Ok(caps[1].to_string());
     }
 
+    /// Login to the platform.
     fn login(&mut self, username: &str, password: &str) -> String {
         let login_page = self.client.get("https://codeforces.com").unwrap();
         let mut params: HashMap<String, String> = HashMap::new();
@@ -49,8 +93,9 @@ impl OnlineJudge for Codeforces {
         };
         return resp;
     }
-
-    fn get_test_cases(&mut self) -> String {
+    // TODO: get test cases
+    fn get_test_cases(&mut self, identifier: &str) -> String {
+        let _ = identifier;
         String::from("Codeforces get_test_cases")
     }
 }
