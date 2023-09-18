@@ -26,4 +26,5 @@ reqwest_cookie_store = "0.6.0"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_derive = "1.0.160"
 serde_yaml = "0.9.21"
+soup = "0.5.1"
 sqlite = "0.31.0"
