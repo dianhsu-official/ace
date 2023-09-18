@@ -40,7 +40,7 @@ impl ConfigDatabase {
         let config_dir = pathbuf.join(".ace");
         create_dir_all(&config_dir).unwrap();
 
-        let binding = config_dir.join("config.db");
+        let binding = config_dir.join("config.sqlite");
         let config_path = binding.as_path();
         return Self::create_from_path(config_path);
     }
@@ -155,7 +155,7 @@ impl ConfigDatabase {
 
 #[test]
 fn test_config_database() {
-    let config_db_path = Path::new("test_config.db");
+    let config_db_path = Path::new("test_config.sqlite");
     let config_db = ConfigDatabase::create_from_path(config_db_path);
     let _ = config_db.add_account("codeforces", "dianhsu", "xudian");
     let res = config_db.get_accounts("codeforces");
