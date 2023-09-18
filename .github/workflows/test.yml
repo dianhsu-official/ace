@@ -35,4 +35,9 @@ jobs:
       timeout-minutes: 120
       shell: bash
       run: cross build --target ${{ matrix.target }} 
+
+    - name: Test ${{ matrix.target }}
+      timeout-minutes: 120
+      shell: bash
+      run: cross test --target ${{ matrix.target }}
   
