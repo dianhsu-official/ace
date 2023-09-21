@@ -4,7 +4,6 @@ use crate::misc::http_client::HttpClient;
 use crate::platform::lib::OnlineJudge;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
 use regex::Regex;
-use soup::prelude::*;
 use soup::Soup;
 pub struct Codeforces {
     pub client: HttpClient,
@@ -190,27 +189,6 @@ impl Codeforces {
 }
 
 #[test]
-fn test_submit() {
-    let mut cf = Codeforces::new("");
-    cf.login("dianhsu", "xrc-VNJ4gyp3tbk-dbz");
-    let code = r#"
-#include <algorithm>
-#include <test.h>
-
-using namespace std;
-
-int main(){
-
-    return 0;
-}
-    
-    "#;
-    match cf.submit("4_A", code, "73") {
-        Ok(resp) => {
-            HttpClient::debug_save(&resp, ".html");
-        }
-        Err(err) => {
-            println!("{}", err);
-        }
-    }
+fn test_parse_recent_submit_id(){
+    dotenv::dotenv().ok();
 }

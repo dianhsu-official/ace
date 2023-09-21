@@ -2,3 +2,4 @@
 example/
 *.html
 *.sqlite
+.env
