@@ -4,17 +4,30 @@ use crate::misc::http_client::HttpClient;
 use crate::platform::lib::OnlineJudge;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
 use regex::Regex;
+use soup::prelude::*;
+use soup::Soup;
 pub struct Codeforces {
     pub client: HttpClient,
 }
 
 impl OnlineJudge for Codeforces {
+    /// Submit code to the platform.  
     ///
-    /// Get the problem list of the platform.
-    /// identifier: the identifier of the problem.
-    ///             For example, the identifier of the problem https://codeforces.com/problemset/problem/4/A is 4_A.
+    /// identifier: the identifier of the problem.  
+    ///             For example, the identifier of the problem https://codeforces.com/problemset/problem/4/A is 4_A.  
+    ///
+    /// code: the code to submit.  
+    ///
+    /// lang_id: the language id of the code.  
+    ///         For example, the language id of C++ is 73.  
+    ///        You can get the language id from the submit page.  
+    ///
+    /// Return the submit id of the submit request.  
     fn submit(&mut self, identifier: &str, code: &str, lang_id: &str) -> Result<String, String> {
         let info: Vec<&str> = identifier.split("_").collect();
+        if info.len() != 2 {
+            return Err(String::from("Invalid identifier."));
+        }
         let contest_id = info[0];
         let problem_id = info[1];
         let submit_page_url = format!("https://codeforces.com/contest/{}/submit", contest_id);
@@ -52,6 +65,11 @@ impl OnlineJudge for Codeforces {
                 return Err(String::from("Submit failed, ") + err.as_str());
             }
         };
+        if resp.contains("You have submitted exactly the same code before") {
+            return Err(String::from(
+                "Submit failed, you have submitted exactly the same code before.",
+            ));
+        }
         return Ok(resp);
     }
 
@@ -156,5 +174,43 @@ impl Codeforces {
         type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
         Aes128CbcDec::new(&key.into(), &iv.into()).decrypt_block_mut(&mut blk);
         return hex::encode(blk);
+    }
+
+    /// Check if the contest is a regular contest.
+    /// distinguish regular contest and gym contest.
+    #[allow(unused)]
+    fn is_regular_contest(identifier: &str) -> bool {
+        return false;
+    }
+    #[allow(unused)]
+    fn parse_recent_submit_id(resp: &str) -> Option<String>{
+        let soup = Soup::new(resp);
+        return Some(String::from(""));
+    }
+}
+
+#[test]
+fn test_submit() {
+    let mut cf = Codeforces::new("");
+    cf.login("dianhsu", "xrc-VNJ4gyp3tbk-dbz");
+    let code = r#"
+#include <algorithm>
+#include <test.h>
+
+using namespace std;
+
+int main(){
+
+    return 0;
+}
+    
+    "#;
+    match cf.submit("4_A", code, "73") {
+        Ok(resp) => {
+            HttpClient::debug_save(&resp, ".html");
+        }
+        Err(err) => {
+            println!("{}", err);
+        }
     }
 }
