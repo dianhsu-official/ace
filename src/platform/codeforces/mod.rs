@@ -73,21 +73,21 @@ impl OnlineJudge for Codeforces {
     }
 
     /// Check if the user is logged in.
-    fn is_login(&mut self) -> Result<String, bool> {
+    fn is_login(&mut self) -> Result<String, String> {
         let main_page = self.client.get("https://codeforces.com").unwrap();
         let re = match Regex::new(r#"handle = "([\s\S]+?)""#) {
             Ok(re) => re,
-            Err(_) => return Err(false),
+            Err(_) => return Err(String::from("Create regex failed.")),
         };
         let caps = match re.captures(main_page.as_str()) {
             Some(caps) => caps,
-            None => return Err(false),
+            None => return Err(String::from("Can't find handle.")),
         };
         return Ok(caps[1].to_string());
     }
 
     /// Login to the platform.
-    fn login(&mut self, username: &str, password: &str) -> String {
+    fn login(&mut self, username: &str, password: &str) -> Result<String, String> {
         let login_page = self.client.get("https://codeforces.com").unwrap();
         let mut params: HashMap<String, String> = HashMap::new();
         params.insert(String::from("csrf_token"), Self::get_csrf(&login_page));
@@ -98,17 +98,13 @@ impl OnlineJudge for Codeforces {
         params.insert(String::from("password"), String::from(password));
         params.insert(String::from("_tta"), String::from("176"));
         params.insert(String::from("remember"), String::from("on"));
-        let resp = match self
+        return match self
             .client
             .post_form("https://codeforces.com/enter", &params)
         {
-            Ok(resp) => resp,
-            Err(err) => {
-                println!("{}", err);
-                return String::from("");
-            }
+            Ok(resp) => Ok(resp),
+            Err(err) => Err(err),
         };
-        return resp;
     }
     // TODO: get test cases
     fn get_test_cases(&mut self, identifier: &str) -> String {
@@ -182,13 +178,48 @@ impl Codeforces {
         return false;
     }
     #[allow(unused)]
-    fn parse_recent_submit_id(resp: &str) -> Option<String>{
+    fn parse_recent_submit_id(resp: &str) -> Option<String> {
         let soup = Soup::new(resp);
         return Some(String::from(""));
     }
 }
 
 #[test]
-fn test_parse_recent_submit_id(){
+fn test_parse_recent_submit_id() {}
+
+#[test]
+#[ignore]
+fn test_login() {
     dotenv::dotenv().ok();
+    let mut cf = Codeforces::new("");
+    let username = match dotenv::var("CODEFORCES_USERNAME") {
+        Ok(username) => username,
+        Err(_) => {
+            panic!(
+                "Please set CODEFORCES_USERNAME in .env file or set it in the environment variable"
+            );
+        }
+    };
+    let password = match dotenv::var("CODEFORCES_PASSWORD") {
+        Ok(password) => password,
+        Err(_) => {
+            panic!(
+                "Please set CODEFORCES_PASSWORD in .env file or set it in the environment variable"
+            );
+        }
+    };
+    match cf.login(&username, &password) {
+        Ok(_) => {}
+        Err(info) => {
+            panic!("{}", info);
+        }
+    };
+    match cf.is_login() {
+        Ok(_) => {
+            println!("Login successfully.");
+        }
+        Err(info) => {
+            panic!("{}", info);
+        }
+    };
 }
