@@ -4,6 +4,7 @@ use crate::misc::http_client::HttpClient;
 use crate::platform::lib::OnlineJudge;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
 use regex::Regex;
+use soup::prelude::*;
 use soup::Soup;
 pub struct Codeforces {
     pub client: HttpClient,
@@ -69,7 +70,10 @@ impl OnlineJudge for Codeforces {
                 "Submit failed, you have submitted exactly the same code before.",
             ));
         }
-        return Ok(resp);
+        return match Self::parse_recent_submit_id(&resp) {
+            Ok(submit_id) => Ok(submit_id),
+            Err(info) => Err(info),
+        };
     }
 
     /// Check if the user is logged in.
@@ -107,9 +111,29 @@ impl OnlineJudge for Codeforces {
         };
     }
     // TODO: get test cases
-    fn get_test_cases(&mut self, identifier: &str) -> String {
-        let _ = identifier;
-        String::from("Codeforces get_test_cases")
+    fn get_test_cases(&mut self, identifier: &str) -> Result<Vec<[String; 2]>, String> {
+        let info: Vec<&str> = identifier.split("_").collect();
+        if info.len() != 2 {
+            return Err(String::from("Invalid identifier."));
+        }
+        let contest_id = info[0];
+        let problem_id = info[1];
+        let problem_url = format!(
+            "https://codeforces.com/contest/{}/problem/{}",
+            contest_id, problem_id
+        );
+        let resp = match self.client.get(&problem_url) {
+            Ok(resp) => resp,
+            Err(err) => {
+                return Err(String::from("Get problem page failed, ") + err.as_str());
+            }
+        };
+        return match Self::parse_test_cases(&resp) {
+            Ok(test_cases) => Ok(test_cases),
+            Err(info) => {
+                return Err(String::from("Parse test cases failed, ") + info.as_str());
+            }
+        };
     }
 }
 
@@ -178,15 +202,153 @@ impl Codeforces {
         return false;
     }
     #[allow(unused)]
-    fn parse_recent_submit_id(resp: &str) -> Option<String> {
-        let soup = Soup::new(resp);
-        return Some(String::from(""));
+    fn parse_recent_submit_id(resp: &str) -> Result<String, String> {
+        let re = match Regex::new(r#"submissionId="(\d+)"#) {
+            Ok(re) => re,
+            Err(_) => return Err(String::from("Create regex failed.")),
+        };
+        let caps = match re.captures(resp) {
+            Some(caps) => caps,
+            None => return Err(String::from("Can't find submission id.")),
+        };
+        return Ok(caps[1].to_string());
     }
+    #[allow(unused)]
+    fn parse_test_cases(resp: &str) -> Result<Vec<[String; 2]>, String> {
+        let soup = Soup::new(resp);
+        let mut res = Vec::new();
+        soup.tag("div")
+            .attr("class", "sample-test")
+            .find_all()
+            .enumerate()
+            .for_each(|(i, node)| {
+                let mut input = String::new();
+                let mut output = String::new();
+                let input_div_node = match node.tag("div").attr("class", "input").find() {
+                    Some(input_div_node) => input_div_node,
+                    None => return,
+                };
+                let input_pre_node = match input_div_node.tag("pre").find() {
+                    Some(input_pre_node) => input_pre_node,
+                    None => return,
+                };
+                input_pre_node
+                    .tag("div")
+                    .find_all()
+                    .enumerate()
+                    .for_each(|(i, node)| {
+                        if i != 0 {
+                            input.push('\n');
+                        }
+                        input.push_str(node.text().as_str());
+                    });
+                if input.is_empty() {
+                    input = input_pre_node.text();
+                }
+                let output_div_node = match node.tag("div").attr("class", "output").find() {
+                    Some(output_div_node) => output_div_node,
+                    None => return,
+                };
+                let output_pre_node = match output_div_node.tag("pre").find() {
+                    Some(output_pre_node) => output_pre_node,
+                    None => return,
+                };
+                output_pre_node
+                    .tag("div")
+                    .find_all()
+                    .enumerate()
+                    .for_each(|(i, node)| {
+                        if i != 0 {
+                            output.push('\n');
+                        }
+                        output.push_str(node.text().as_str());
+                    });
+                if output.is_empty() {
+                    output = output_pre_node.text();
+                }
+                while input.ends_with("\n") {
+                    input.pop();
+                }
+                while output.ends_with("\n") {
+                    output.pop();
+                }
+                res.push([input, output]);
+            });
+        return Ok(res);
+    }
+}
+#[test]
+fn test_parse_test_cases() {
+    let content = match std::fs::read_to_string("assets/codeforces/problem_1873A.html") {
+        Ok(content) => content,
+        Err(info) => {
+            panic!("{}", info);
+        }
+    };
+    let _ = Codeforces::parse_test_cases(&content);
 }
 
 #[test]
-fn test_parse_recent_submit_id() {}
+fn test_parse_recent_submit_id() {
+    let content = match std::fs::read_to_string("assets/codeforces/submit_resp.html") {
+        Ok(content) => content,
+        Err(info) => {
+            panic!("{}", info);
+        }
+    };
+    let res = Codeforces::parse_recent_submit_id(&content);
+    assert_eq!(res.is_ok(), true, "{}", res.err().unwrap());
+    assert_eq!(res.unwrap(), "224642350");
+}
 
+#[test]
+#[ignore]
+fn test_submit_code() {
+    dotenv::dotenv().ok();
+    let mut cf = Codeforces::new("");
+    let username = match dotenv::var("CODEFORCES_USERNAME") {
+        Ok(username) => username,
+        Err(_) => {
+            panic!(
+                "Please set CODEFORCES_USERNAME in .env file or set it in the environment variable"
+            );
+        }
+    };
+    let password = match dotenv::var("CODEFORCES_PASSWORD") {
+        Ok(password) => password,
+        Err(_) => {
+            panic!(
+                "Please set CODEFORCES_PASSWORD in .env file or set it in the environment variable"
+            );
+        }
+    };
+    let login_res = cf.login(&username, &password);
+    assert_eq!(login_res.is_ok(), true, "{}", login_res.err().unwrap());
+    let is_login_res = cf.is_login();
+    assert_eq!(
+        is_login_res.is_ok(),
+        true,
+        "{}",
+        is_login_res.err().unwrap()
+    );
+    let code = r#"
+// 1
+#include <iostream>
+using namespace std;
+int main() {
+    int w;
+    cin >> w;
+    if (w % 2 == 0 && w > 2) {
+        cout << "YES" << endl;
+    } else {
+        cout << "NO" << endl;
+    }
+}
+    "#;
+    let submit_res = cf.submit("4_A", code, "73");
+    assert_eq!(submit_res.is_ok(), true, "{}", submit_res.err().unwrap());
+    print!("{}", submit_res.unwrap());
+}
 #[test]
 #[ignore]
 fn test_login() {

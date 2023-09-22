@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use sqlite;
+use sqlite::{self};
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::process::exit;
@@ -68,6 +68,53 @@ impl ConfigDatabase {
         }
         return res;
     }
+
+    /// Check if the account exists.
+    #[allow(unused)]
+    pub fn is_account_exist(&self, platform: &str, username: &str) -> Result<bool, String> {
+        let query = format!("SELECT COUNT(*) FROM account WHERE platform = ? AND username = ?");
+        let mut stmt = match self.connection.prepare(query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                log::error!("{}", info);
+                return Err(info.to_string());
+            }
+        };
+        match stmt.bind((1, platform)) {
+            Ok(_) => {}
+            Err(info) => {
+                log::error!("{}", info);
+                return Err(info.to_string());
+            }
+        };
+        match stmt.bind((2, username)) {
+            Ok(_) => {}
+            Err(info) => {
+                log::error!("{}", info);
+                return Err(info.to_string());
+            }
+        };
+        match stmt.next() {
+            Ok(_) => {}
+            Err(info) => {
+                log::error!("{}", info);
+                return Err(info.to_string());
+            }
+        };
+        let cnt = match stmt.read::<i64, _>(0) {
+            Ok(cnt) => cnt,
+            Err(info) => {
+                log::error!("{}", info);
+                return Err(info.to_string());
+            }
+        };
+        if (cnt > 0) {
+            return Ok(true);
+        } else {
+            return Ok(false);
+        }
+    }
+
     /// Add an account to the database.
     #[allow(unused)]
     pub fn add_account(
@@ -76,6 +123,15 @@ impl ConfigDatabase {
         username: &str,
         password: &str,
     ) -> Result<String, String> {
+        match self.is_account_exist(platform, username) {
+            Ok(true) => {
+                return Err(format!("Account {} already exists.", username));
+            }
+            Ok(false) => {}
+            Err(info) => {
+                return Err(info);
+            }
+        };
         let query = format!("INSERT INTO account (platform, username, password) VALUES (?, ?, ?)");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
@@ -155,9 +211,13 @@ impl ConfigDatabase {
 
 #[test]
 fn test_config_database() {
-    let config_db_path = Path::new("test_config.sqlite");
+    let path_str = format!("test_{}.sqlite", rand::random::<u64>());
+    let config_db_path = Path::new(&path_str);
     let config_db = ConfigDatabase::create_from_path(config_db_path);
-    let _ = config_db.add_account("codeforces", "dianhsu", "xudian");
+    let mut res = config_db.add_account("codeforces", "dianhsu", "xudian");
+    assert_eq!(res.is_ok(), true);
+    res = config_db.add_account("codeforces", "dianhsu", "xudian");
+    assert_eq!(res.is_ok(), false);
     let res = config_db.get_accounts("codeforces");
     for account in res {
         println!("{:?}", account);
