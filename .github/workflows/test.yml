@@ -8,7 +8,40 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-cross:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      RUST_BACKTRACE: full
+    strategy:
+      matrix:
+        target:
+          - x86_64-pc-windows-gnu
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        target: ${{ matrix.target }}
+        toolchain: nightly
+        default: true
+        override: true
+
+    - name: Install cross
+      run: cargo install cross
+
+    - name: Build ${{ matrix.target }}
+      timeout-minutes: 120
+      shell: bash
+      run: cargo build --target ${{ matrix.target }} 
+
+    - name: Test ${{ matrix.target }}
+      timeout-minutes: 120
+      shell: bash
+      run: cargo test --target ${{ matrix.target }}
+  
+
+  build-linux:
     runs-on: ubuntu-latest
     env:
       RUST_BACKTRACE: full
@@ -34,10 +67,10 @@ jobs:
     - name: Build ${{ matrix.target }}
       timeout-minutes: 120
       shell: bash
-      run: cross build --target ${{ matrix.target }} 
+      run: cargo build --target ${{ matrix.target }} 
 
     - name: Test ${{ matrix.target }}
       timeout-minutes: 120
       shell: bash
-      run: cross test --target ${{ matrix.target }}
+      run: cargo test --target ${{ matrix.target }}
   
