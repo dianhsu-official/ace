@@ -27,9 +27,6 @@ jobs:
         default: true
         override: true
 
-    - name: Install cross
-      run: cargo install cross
-
     - name: Build ${{ matrix.target }}
       timeout-minutes: 120
       shell: bash
@@ -38,7 +35,7 @@ jobs:
     - name: Test ${{ matrix.target }}
       timeout-minutes: 120
       shell: bash
-      run: cargo test --target ${{ matrix.target }}
+      run: cargo test --target ${{ matrix.target }} -C {{ vars.GITHUB_WORKSPACE }}
   
 
   build-linux:
@@ -60,16 +57,13 @@ jobs:
         default: true
         override: true
 
-    - name: Install cross
-      run: cargo install cross
-
     - name: Build ${{ matrix.target }}
       timeout-minutes: 120
       shell: bash
-      run: cargo build --target ${{ matrix.target }} 
+      run: cargo build --target ${{ matrix.target }}
 
     - name: Test ${{ matrix.target }}
       timeout-minutes: 120
       shell: bash
-      run: cargo test --target ${{ matrix.target }}
+      run: cargo test --target ${{ matrix.target }} -C {{ vars.GITHUB_WORKSPACE }}
   
