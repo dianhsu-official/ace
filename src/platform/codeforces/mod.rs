@@ -1,7 +1,11 @@
 use std::collections::HashMap;
+mod builder;
 mod config;
+use super::lib::SubmitInfo;
+use super::lib::SubmitResult;
 use crate::misc::http_client::HttpClient;
 use crate::platform::lib::OnlineJudge;
+use builder::UrlBuilder;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
 use regex::Regex;
 use soup::prelude::*;
@@ -30,7 +34,7 @@ impl OnlineJudge for Codeforces {
         }
         let contest_id = info[0];
         let problem_id = info[1];
-        let submit_page_url = format!("https://codeforces.com/contest/{}/submit", contest_id);
+        let submit_page_url = UrlBuilder::build_submit_page_url(contest_id);
         let submit_page = match self.client.get(&submit_page_url) {
             Ok(page) => page,
             Err(err) => {
@@ -54,11 +58,7 @@ impl OnlineJudge for Codeforces {
         params.insert(String::from("source"), code.to_string());
         params.insert(String::from("tabSize"), String::from("4"));
         params.insert(String::from("_tta"), String::from("176"));
-        let submit_url = format!(
-            "{}?csrf_token={}",
-            submit_page_url,
-            Self::get_csrf(&submit_page)
-        );
+        let submit_url = UrlBuilder::build_submit_url(contest_id, &params["csrf_token"]);
         let resp = match self.client.post_form(&submit_url, &params) {
             Ok(resp) => resp,
             Err(err) => {
@@ -92,7 +92,12 @@ impl OnlineJudge for Codeforces {
 
     /// Login to the platform.
     fn login(&mut self, username: &str, password: &str) -> Result<String, String> {
-        let login_page = self.client.get("https://codeforces.com").unwrap();
+        let login_page = match self.client.get(&UrlBuilder::build_index_url()) {
+            Ok(login_page) => login_page,
+            Err(info) => {
+                return Err(info);
+            }
+        };
         let mut params: HashMap<String, String> = HashMap::new();
         params.insert(String::from("csrf_token"), Self::get_csrf(&login_page));
         params.insert(String::from("action"), String::from("enter"));
@@ -104,7 +109,7 @@ impl OnlineJudge for Codeforces {
         params.insert(String::from("remember"), String::from("on"));
         return match self
             .client
-            .post_form("https://codeforces.com/enter", &params)
+            .post_form(&UrlBuilder::build_login_url(), &params)
         {
             Ok(resp) => Ok(resp),
             Err(err) => Err(err),
@@ -118,11 +123,10 @@ impl OnlineJudge for Codeforces {
         }
         let contest_id = info[0];
         let problem_id = info[1];
-        let problem_url = format!(
-            "https://codeforces.com/contest/{}/problem/{}",
-            contest_id, problem_id
-        );
-        let resp = match self.client.get(&problem_url) {
+        let resp = match self
+            .client
+            .get(&UrlBuilder::build_problem_url(contest_id, problem_id))
+        {
             Ok(resp) => resp,
             Err(err) => {
                 return Err(String::from("Get problem page failed, ") + err.as_str());
@@ -134,6 +138,21 @@ impl OnlineJudge for Codeforces {
                 return Err(String::from("Parse test cases failed, ") + info.as_str());
             }
         };
+    }
+
+    fn retrive_result(
+        &mut self,
+        contest_id: &str,
+        submit_id: &str,
+    ) -> Result<(SubmitResult, SubmitInfo), String> {
+        let url = UrlBuilder::build_submission_url(contest_id, submit_id);
+        let _ = match self.client.get(&url) {
+            Ok(resp) => resp,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        todo!("Parse the result.");
     }
 }
 
