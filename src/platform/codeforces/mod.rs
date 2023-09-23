@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 mod builder;
 mod config;
-use super::lib::SubmitInfo;
-use super::lib::SubmitResult;
+use super::lib::SubmissionInfo;
+use super::lib::Verdict;
 use crate::misc::http_client::HttpClient;
 use crate::platform::lib::OnlineJudge;
 use builder::UrlBuilder;
@@ -115,7 +115,7 @@ impl OnlineJudge for Codeforces {
             Err(err) => Err(err),
         };
     }
-    // TODO: get test cases
+    /// Get test cases
     fn get_test_cases(&mut self, identifier: &str) -> Result<Vec<[String; 2]>, String> {
         let info: Vec<&str> = identifier.split("_").collect();
         if info.len() != 2 {
@@ -142,17 +142,41 @@ impl OnlineJudge for Codeforces {
 
     fn retrive_result(
         &mut self,
-        contest_id: &str,
+        identifier: &str,
         submit_id: &str,
-    ) -> Result<(SubmitResult, SubmitInfo), String> {
+    ) -> Result<SubmissionInfo, String> {
+        let info: Vec<&str> = identifier.split("_").collect();
+        if info.len() != 2 {
+            return Err(String::from("Invalid identifier."));
+        }
+        let contest_id = info[0];
+        let problem_id = info[1];
         let url = UrlBuilder::build_submission_url(contest_id, submit_id);
-        let _ = match self.client.get(&url) {
+        let resp = match self.client.get(&url) {
             Ok(resp) => resp,
             Err(info) => {
                 return Err(info);
             }
         };
-        todo!("Parse the result.");
+        let soup = Soup::new(&resp);
+        let mut submission_info = SubmissionInfo::new();
+        let table_node = match soup.tag("table").find() {
+            Some(table_node) => table_node,
+            None => {
+                return Err(String::from("Parse submission info failed."));
+            }
+        };
+        let vec = table_node.tag("td").find_all().collect::<Vec<_>>();
+        if vec.len() != 10 {
+            return Err(String::from("Parse submission info failed."));
+        }
+        submission_info.submission_id = submit_id.to_string();
+        submission_info.identifier = format!("{}{}", contest_id, problem_id);
+        submission_info.verdict_info = vec[4].text().trim().to_string();
+        submission_info.verdict = Codeforces::parse_verdict(&submission_info.verdict_info);
+        submission_info.execute_time = vec[5].text().trim().to_string();
+        submission_info.execute_memory = vec[6].text().trim().to_string();
+        return Ok(submission_info);
     }
 }
 
@@ -214,6 +238,13 @@ impl Codeforces {
         return hex::encode(blk);
     }
 
+    fn parse_verdict(verdict_info: &str) -> Verdict {
+        if verdict_info.contains("Running") || verdict_info.contains("queue") {
+            return Verdict::Waiting;
+        } else {
+            return Verdict::Resulted;
+        }
+    }
     /// Check if the contest is a regular contest.
     /// distinguish regular contest and gym contest.
     #[allow(unused)]
@@ -405,4 +436,17 @@ fn test_login() {
             panic!("{}", info);
         }
     };
+}
+
+#[test]
+fn test_get_verdict() {
+    let mut cf = Codeforces::new("");
+    match cf.retrive_result("1872_A", "223223698") {
+        Ok(submission_info) => {
+            println!("{:?}", submission_info);
+        }
+        Err(info) => {
+            panic!("{}", info);
+        }
+    }
 }
