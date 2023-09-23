@@ -35,7 +35,7 @@ jobs:
     - name: Test ${{ matrix.target }}
       timeout-minutes: 120
       shell: bash
-      run: cargo test --target ${{ matrix.target }} -C {{ vars.GITHUB_WORKSPACE }}
+      run: cargo test --target ${{ matrix.target }} 
   
 
   build-linux:
@@ -65,5 +65,5 @@ jobs:
     - name: Test ${{ matrix.target }}
       timeout-minutes: 120
       shell: bash
-      run: cargo test --target ${{ matrix.target }} -C {{ vars.GITHUB_WORKSPACE }}
+      run: cargo test --target ${{ matrix.target }}
   

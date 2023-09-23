@@ -278,6 +278,7 @@ impl Codeforces {
     }
 }
 #[test]
+#[ignore = "local test"]
 fn test_parse_test_cases() {
     let content = match std::fs::read_to_string("assets/codeforces/problem_1873A.html") {
         Ok(content) => content,
@@ -289,6 +290,7 @@ fn test_parse_test_cases() {
 }
 
 #[test]
+#[ignore = "local test"]
 fn test_parse_recent_submit_id() {
     let content = match std::fs::read_to_string("assets/codeforces/submit_resp.html") {
         Ok(content) => content,
@@ -302,7 +304,7 @@ fn test_parse_recent_submit_id() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "local test"]
 fn test_submit_code() {
     dotenv::dotenv().ok();
     let mut cf = Codeforces::new("");
@@ -350,7 +352,7 @@ int main() {
     print!("{}", submit_res.unwrap());
 }
 #[test]
-#[ignore]
+#[ignore = "local test"]
 fn test_login() {
     dotenv::dotenv().ok();
     let mut cf = Codeforces::new("");
