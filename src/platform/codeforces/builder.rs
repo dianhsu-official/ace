@@ -37,4 +37,7 @@ impl UrlBuilder {
     pub fn build_index_url() -> String {
         return String::from("https://codeforces.com/");
     }
+    pub fn build_problem_list_url(contest_id: &str) -> String {
+        return format!("https://codeforces.com/contest/{}", contest_id);
+    }
 }

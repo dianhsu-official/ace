@@ -41,23 +41,19 @@ impl OnlineJudge for Codeforces {
                 return Err(String::from("unable to get submit page, ") + err.as_str());
             }
         };
-        let mut params: HashMap<String, String> = HashMap::new();
-        params.insert(String::from("csrf_token"), Self::get_csrf(&submit_page));
-        params.insert(String::from("ftaa"), Self::get_ftaa());
-        params.insert(String::from("bfaa"), Self::get_bfaa());
-        params.insert(
-            String::from("action"),
-            String::from("submitSolutionFormSubmitted"),
-        );
-        params.insert(
-            String::from("submittedProblemIndex"),
-            problem_id.to_string(),
-        );
-        params.insert(String::from("submittedProblemCode"), String::from("4_A"));
-        params.insert(String::from("programTypeId"), lang_id.to_string());
-        params.insert(String::from("source"), code.to_string());
-        params.insert(String::from("tabSize"), String::from("4"));
-        params.insert(String::from("_tta"), String::from("176"));
+        let mut params: HashMap<&str, &str> = HashMap::new();
+        let csrf_token = Self::get_csrf(&submit_page);
+        let ftaa = Self::get_ftaa();
+        let bfaa = Self::get_bfaa();
+        params.insert("csrf_token", &csrf_token);
+        params.insert("ftaa", &ftaa);
+        params.insert("bfaa", &bfaa);
+        params.insert("action", "submitSolutionFormSubmitted");
+        params.insert("submittedProblemIndex", problem_id);
+        params.insert("programTypeId", lang_id);
+        params.insert("source", code);
+        params.insert("tabSize", "4");
+        params.insert("_tta", "176");
         let submit_url = UrlBuilder::build_submit_url(contest_id, &params["csrf_token"]);
         let resp = match self.client.post_form(&submit_url, &params) {
             Ok(resp) => resp,
@@ -98,15 +94,19 @@ impl OnlineJudge for Codeforces {
                 return Err(info);
             }
         };
-        let mut params: HashMap<String, String> = HashMap::new();
-        params.insert(String::from("csrf_token"), Self::get_csrf(&login_page));
-        params.insert(String::from("action"), String::from("enter"));
-        params.insert(String::from("ftaa"), Self::get_ftaa());
-        params.insert(String::from("bfaa"), Self::get_bfaa());
-        params.insert(String::from("handleOrEmail"), String::from(username));
-        params.insert(String::from("password"), String::from(password));
-        params.insert(String::from("_tta"), String::from("176"));
-        params.insert(String::from("remember"), String::from("on"));
+        let mut params: HashMap<&str, &str> = HashMap::new();
+        let csrf_token = Self::get_csrf(&login_page);
+        let ftaa = Self::get_ftaa();
+        let bfaa = Self::get_bfaa();
+
+        params.insert("csrf_token", &csrf_token);
+        params.insert("action", "enter");
+        params.insert("ftaa", &ftaa);
+        params.insert("bfaa", &bfaa);
+        params.insert("handleOrEmail", username);
+        params.insert("password", password);
+        params.insert("_tta", "176");
+        params.insert("remember", "on");
         return match self
             .client
             .post_form(&UrlBuilder::build_login_url(), &params)
@@ -177,6 +177,38 @@ impl OnlineJudge for Codeforces {
         submission_info.execute_time = vec[5].text().trim().to_string();
         submission_info.execute_memory = vec[6].text().trim().to_string();
         return Ok(submission_info);
+    }
+
+    fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<String>, String> {
+        let problem_list_url = UrlBuilder::build_problem_list_url(contest_identifier);
+        let resp = match self.client.get(&problem_list_url){
+            Ok(resp) => resp,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+
+        let soup = Soup::new(&resp);
+        let table = match soup.tag("table").attr("class", "problems").find() {
+            Some(table) => {table},
+            None => {
+                return Err(String::from("Parse problem list failed."));
+            },
+        };
+        let trs = table.tag("tr").find_all();
+        let mut problems = Vec::new();
+        for tr in trs {
+            let tds = tr.tag("td").find_all().collect::<Vec<_>>();
+            if tds.len() != 4 {
+                continue;
+            }
+            let problem_key = tds[0].text();
+            if problem_key == "#" {
+                continue;
+            }
+            problems.push(format!("{}_{}", contest_identifier, problem_key.trim()));
+        }
+        return Ok(problems);
     }
 }
 
@@ -438,6 +470,50 @@ fn test_login() {
     };
 }
 
+#[test]
+#[ignore = "local test"]
+fn test_get_problems(){
+    dotenv::dotenv().ok();
+    let mut cf = Codeforces::new("");
+    let username = match dotenv::var("CODEFORCES_USERNAME") {
+        Ok(username) => username,
+        Err(_) => {
+            panic!(
+                "Please set CODEFORCES_USERNAME in .env file or set it in the environment variable"
+            );
+        }
+    };
+    let password = match dotenv::var("CODEFORCES_PASSWORD") {
+        Ok(password) => password,
+        Err(_) => {
+            panic!(
+                "Please set CODEFORCES_PASSWORD in .env file or set it in the environment variable"
+            );
+        }
+    };
+    match cf.login(&username, &password) {
+        Ok(_) => {}
+        Err(info) => {
+            panic!("{}", info);
+        }
+    };
+    match cf.is_login() {
+        Ok(_) => {
+            println!("Login successfully.");
+        }
+        Err(info) => {
+            panic!("{}", info);
+        }
+    };
+    match cf.get_problems("1878") {
+        Ok(problems) => {
+            println!("{:?}", problems);
+        }
+        Err(info) => {
+            panic!("{}", info);
+        }
+    }
+}
 #[test]
 fn test_get_verdict() {
     let mut cf = Codeforces::new("");
