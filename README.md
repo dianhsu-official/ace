@@ -1,5 +1,5 @@
 # ACE
-> current under development.
+> Developing.
 
 ACE is a command-line interface tool for Algorithm Contest, just like: Codeforces, Atcoder, etc.
 
