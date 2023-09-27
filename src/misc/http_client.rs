@@ -60,7 +60,7 @@ impl HttpClient {
     pub fn post_form(
         &mut self,
         url: &str,
-        form: &HashMap<String, String>,
+        form: &HashMap<&str, &str>,
     ) -> Result<String, String> {
         log::info!("post data to {}.", url);
         let res = match self.client.post(url).form(&form).send() {
@@ -84,7 +84,7 @@ impl HttpClient {
     pub fn post_data(
         &mut self,
         url: &str,
-        json: &HashMap<String, String>,
+        json: &HashMap<&str, &str>,
     ) -> Result<String, String> {
         log::info!("post data to {}.", url);
         let res = match self.client.post(url).json(json).send() {
