@@ -1,6 +1,6 @@
-use crate::library::OnlineJudge;
 use crate::misc::http_client::HttpClient;
 use crate::model::SubmissionInfo;
+use crate::{library::OnlineJudge, model::Verdict};
 mod builder;
 mod config;
 use builder::UrlBuilder;
@@ -86,7 +86,12 @@ impl OnlineJudge for AtCoder {
     /// Get test cases from AtCoder
     /// Success: Vec<[String; 2]> where [0] is input and [1] is output
     fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<[String; 2]>, String> {
-        let problem_url = UrlBuilder::build_problem_url(problem_identifier);
+        let vec = problem_identifier.split("_").collect::<Vec<_>>();
+        if vec.len() != 2 {
+            return Err(String::from("Invalid problem identifier."));
+        }
+        let contest_identifier = vec[0];
+        let problem_url = UrlBuilder::build_problem_url(contest_identifier, problem_identifier);
         let resp = match self.client.get(&problem_url) {
             Ok(resp) => resp,
             Err(info) => return Err(info),
@@ -143,29 +148,70 @@ impl OnlineJudge for AtCoder {
                 outputs_en.push(pre.text());
             }
         }
-        let mut vec = Vec::new();
+        let mut sample_vec = Vec::new();
         if !inputs_en.is_empty() && inputs_en.len() == outputs_en.len() {
             for i in 0..inputs_en.len() {
-                vec.push([inputs_en[i].clone(), outputs_en[i].clone()]);
+                sample_vec.push([inputs_en[i].clone(), outputs_en[i].clone()]);
             }
         } else if !inputs_ja.is_empty() && inputs_ja.len() == outputs_ja.len() {
             for i in 0..inputs_ja.len() {
-                vec.push([inputs_ja[i].clone(), outputs_ja[i].clone()]);
+                sample_vec.push([inputs_ja[i].clone(), outputs_ja[i].clone()]);
             }
         } else {
             return Err(String::from("Failed to get test cases."));
         }
-        return Ok(vec);
+        return Ok(sample_vec);
     }
 
     fn retrive_result(
         &mut self,
         problem_identifier: &str,
-        submit_id: &str,
+        submission_id: &str,
     ) -> Result<SubmissionInfo, String> {
-        let _ = problem_identifier;
-        let _ = submit_id;
-        todo!()
+        let vec = problem_identifier.split("_").collect::<Vec<_>>();
+        if vec.len() != 2 {
+            return Err(String::from("Invalid problem identifier."));
+        }
+        let contest_identifier = vec[0];
+        let submission_url = UrlBuilder::build_submission_url(contest_identifier, submission_id);
+        let resp = match self.client.get(&submission_url) {
+            Ok(resp) => resp,
+            Err(info) => return Err(info),
+        };
+        let soup = Soup::new(&resp);
+        let table = match soup.tag("tbody").find() {
+            Some(table) => table,
+            None => return Err(String::from("Failed to find tbody.")),
+        };
+        let trs = table.tag("tr").find_all().collect::<Vec<_>>();
+        if trs.len() != 9 && trs.len() != 7 {
+            return Err(String::from("Failed to find trs."));
+        }
+
+        let status = match trs[6].tag("td").find() {
+            Some(td) => td.text(),
+            None => return Err(String::from("Failed to find status.")),
+        };
+        let mut execute_time = String::new();
+        let mut execute_memory = String::new();
+        if trs.len() == 9 {
+            execute_time = match trs[7].tag("td").find() {
+                Some(td) => td.text(),
+                None => return Err(String::from("Failed to find execute time.")),
+            };
+            execute_memory = match trs[8].tag("td").find() {
+                Some(td) => td.text(),
+                None => return Err(String::from("Failed to find execute memory.")),
+            };
+        }
+        let mut submission_info = SubmissionInfo::new();
+        submission_info.submission_id = String::from(submission_id);
+        submission_info.identifier = String::from(problem_identifier);
+        submission_info.verdict_info = status;
+        submission_info.execute_time = execute_time;
+        submission_info.execute_memory = execute_memory;
+        submission_info.verdict = Self::parse_verdict_info(&submission_info.verdict_info);
+        return Ok(submission_info);
     }
 
     fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<String>, String> {
@@ -222,6 +268,12 @@ impl AtCoder {
             }
         }
         return Err(String::from("Failed to get recent submit id."));
+    }
+    pub fn parse_verdict_info(verdict_info: &str) -> Verdict {
+        if verdict_info == "Judging" {
+            return Verdict::Waiting;
+        }
+        return Verdict::Resulted;
     }
 }
 
@@ -388,4 +440,39 @@ fn test_parse_recent_submission_id() {
         }
     };
     println!("{}", id);
+}
+
+#[test]
+#[ignore = "reason: need login"]
+fn test_retrieve_result() {
+    dotenv::dotenv().ok();
+    let username = match dotenv::var("ATCODER_USERNAME") {
+        Ok(username) => username,
+        Err(info) => {
+            println!("Failed to get username, {}", info);
+            return;
+        }
+    };
+    let password = match dotenv::var("ATCODER_PASSWORD") {
+        Ok(password) => password,
+        Err(info) => {
+            println!("Failed to get password, {}", info);
+            return;
+        }
+    };
+    let mut atc = AtCoder::new("");
+    let _ = match atc.login(&username, &password) {
+        Ok(resp) => resp,
+        Err(info) => {
+            println!("Failed to login, {}", info);
+            return;
+        }
+    };
+    let _ = match atc.retrive_result("arc165_b", "46003634") {
+        Ok(resp) => resp,
+        Err(info) => {
+            println!("Failed to retrieve result, {}", info);
+            return;
+        }
+    };
 }

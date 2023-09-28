@@ -13,6 +13,6 @@ pub trait OnlineJudge {
     fn retrive_result(
         &mut self,
         identifier: &str,
-        submit_id: &str,
+        submission_id: &str,
     ) -> Result<SubmissionInfo, String>;
 }

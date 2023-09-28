@@ -18,7 +18,7 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 | Import cookies     | ✅       | ✅          |
 | Export cookies     |         |            |
 | Submit code        | ✅       | ✅          |
-| Retrieve result    |         | ✅          |
+| Retrieve result    | ✅       | ✅          |
 | Get problem list   | ✅       | ✅          |
 | Get test cases     | ✅       | ✅          |
 | Get contest status |         |            |

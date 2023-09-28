@@ -17,7 +17,7 @@ pub struct Codeforces {
 impl OnlineJudge for Codeforces {
     /// Submit code to the platform.  
     ///
-    /// identifier: the identifier of the problem.  
+    /// problem_identifier: the identifier of the problem.  
     ///             For example, the identifier of the problem https://codeforces.com/problemset/problem/4/A is 4_A.  
     ///
     /// code: the code to submit.  
@@ -27,8 +27,13 @@ impl OnlineJudge for Codeforces {
     ///        You can get the language id from the submit page.  
     ///
     /// Return the submit id of the submit request.  
-    fn submit(&mut self, identifier: &str, code: &str, lang_id: &str) -> Result<String, String> {
-        let info: Vec<&str> = identifier.split("_").collect();
+    fn submit(
+        &mut self,
+        problem_identifier: &str,
+        code: &str,
+        lang_id: &str,
+    ) -> Result<String, String> {
+        let info: Vec<&str> = problem_identifier.split("_").collect();
         if info.len() != 2 {
             return Err(String::from("Invalid identifier."));
         }
@@ -116,8 +121,8 @@ impl OnlineJudge for Codeforces {
         };
     }
     /// Get test cases
-    fn get_test_cases(&mut self, identifier: &str) -> Result<Vec<[String; 2]>, String> {
-        let info: Vec<&str> = identifier.split("_").collect();
+    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<[String; 2]>, String> {
+        let info: Vec<&str> = problem_identifier.split("_").collect();
         if info.len() != 2 {
             return Err(String::from("Invalid identifier."));
         }
@@ -142,16 +147,16 @@ impl OnlineJudge for Codeforces {
 
     fn retrive_result(
         &mut self,
-        identifier: &str,
-        submit_id: &str,
+        problem_identifier: &str,
+        submission_id: &str,
     ) -> Result<SubmissionInfo, String> {
-        let info: Vec<&str> = identifier.split("_").collect();
+        let info: Vec<&str> = problem_identifier.split("_").collect();
         if info.len() != 2 {
             return Err(String::from("Invalid identifier."));
         }
         let contest_id = info[0];
         let problem_id = info[1];
-        let url = UrlBuilder::build_submission_url(contest_id, submit_id);
+        let url = UrlBuilder::build_submission_url(contest_id, submission_id);
         let resp = match self.client.get(&url) {
             Ok(resp) => resp,
             Err(info) => {
@@ -170,7 +175,7 @@ impl OnlineJudge for Codeforces {
         if vec.len() != 10 {
             return Err(String::from("Parse submission info failed."));
         }
-        submission_info.submission_id = submit_id.to_string();
+        submission_info.submission_id = submission_id.to_string();
         submission_info.identifier = format!("{}{}", contest_id, problem_id);
         submission_info.verdict_info = vec[4].text().trim().to_string();
         submission_info.verdict = Codeforces::parse_verdict(&submission_info.verdict_info);

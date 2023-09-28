@@ -16,12 +16,10 @@ impl UrlBuilder {
             contest_identifier
         ));
     }
-    pub fn build_problem_url(problem_identifier: &str) -> String {
-        let vec = problem_identifier.split("_").collect::<Vec<_>>();
-        let contest_id = vec[0];
+    pub fn build_problem_url(contest_identifier: &str, problem_identifier: &str) -> String {
         return String::from(format!(
             "https://atcoder.jp/contests/{}/tasks/{}",
-            contest_id, problem_identifier
+            contest_identifier, problem_identifier
         ));
     }
     pub fn build_submit_page_url(contest_identifier: &str) -> String {
@@ -34,6 +32,12 @@ impl UrlBuilder {
         return String::from(format!(
             "https://atcoder.jp/contests/{}/submit",
             contest_identifier
+        ));
+    }
+    pub fn build_submission_url(contest_identifier: &str, submission_id: &str) -> String {
+        return String::from(format!(
+            "https://atcoder.jp/contests/{}/submissions/{}",
+            contest_identifier, submission_id
         ));
     }
 }
