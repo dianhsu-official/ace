@@ -1,5 +1,9 @@
+use lazy_static::lazy_static;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
+use std::collections::HashMap;
+use std::fmt::Display;
+
 #[derive(Serialize, Deserialize)]
 pub struct CodeTemplate {
     pub alias: String,
@@ -10,8 +14,30 @@ pub struct CodeTemplate {
     pub script: String,
     pub after_script: String,
 }
-pub const CODEFORCES: [&'static str; 2] = ["codeforces", "cf"];
-pub const ATCODER: [&'static str; 3] = ["atcoder", "ac", "atc"];
+#[derive(Serialize, Deserialize, Debug)]
+pub enum Platform {
+    Codeforces,
+    Atcoder,
+}
+
+impl Display for Platform {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Platform::Codeforces => "codeforces",
+            Platform::Atcoder => "atcoder",
+        })
+    }
+}
+lazy_static! {
+    pub static ref PLATFORM_MAP: HashMap<&'static str, Platform> = HashMap::from([
+        ("cf", Platform::Codeforces),
+        ("codeforces", Platform::Codeforces),
+        ("at", Platform::Atcoder),
+        ("atc", Platform::Atcoder),
+        ("ac", Platform::Atcoder),
+        ("atcoder", Platform::Atcoder),
+    ]);
+}
 pub enum ProgramLanguage {
     C,
     Cpp,

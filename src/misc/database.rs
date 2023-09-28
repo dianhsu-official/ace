@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::exit;
 
 lazy_static! {
-    static ref CONFIG_DB: ConfigDatabase = ConfigDatabase::new();
+    pub static ref CONFIG_DB: ConfigDatabase = ConfigDatabase::new();
 }
 
 pub struct ConfigDatabase {
@@ -14,9 +14,36 @@ pub struct ConfigDatabase {
 
 const INIT_QUERY: &str = "
 CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, value TEXT);
-CREATE TABLE IF NOT EXISTS account (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, username TEXT, password TEXT, cookies TEXT default \"\", current INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS account (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, username TEXT, password TEXT, cookies TEXT default \"\", last_use TEXT default \"1970-01-01T00:00:00+00:00\", current INTEGER DEFAULT 0);
 ";
 impl ConfigDatabase {
+    pub fn remove_accounts(&self, platform: &str, usernames: Vec<String>) {
+        let query = format!(
+            "DELETE FROM account WHERE platform = ? and username in ('{}')",
+            usernames.join("','")
+        );
+        let mut stmt = match CONFIG_DB.connection.prepare(query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                log::error!("{}", info);
+                return;
+            }
+        };
+        match stmt.bind((1, platform)) {
+            Ok(_) => {}
+            Err(info) => {
+                log::error!("{}", info);
+                return;
+            }
+        };
+        match stmt.next() {
+            Ok(_) => {}
+            Err(info) => {
+                log::error!("{}", info);
+                return;
+            }
+        };
+    }
     pub fn create_from_path(config_path: &Path) -> Self {
         let connection: sqlite::ConnectionWithFullMutex =
             match sqlite::Connection::open_with_full_mutex(config_path) {
@@ -46,9 +73,10 @@ impl ConfigDatabase {
     }
     /// Get the current account of the platform.
     #[allow(unused)]
-    pub fn get_accounts(&self, platform: &str) -> Vec<[String; 4]> {
-        let query =
-            format!("SELECT username, password, cookies, current FROM account WHERE platform = ?");
+    pub fn get_accounts(&self, platform: &str) -> Vec<[String; 5]> {
+        let query = format!(
+            "SELECT username, password, cookies, current, last_use FROM account WHERE platform = ?"
+        );
         let mut res = Vec::new();
         for row in self
             .connection
@@ -59,11 +87,18 @@ impl ConfigDatabase {
             .unwrap()
             .map(|row| row.unwrap())
         {
-            let mut account = [String::new(), String::new(), String::new(), String::new()];
+            let mut account = [
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+            ];
             account[0] = row.read::<&str, _>("username").to_string();
             account[1] = row.read::<&str, _>("password").to_string();
             account[2] = row.read::<&str, _>("cookies").to_string();
             account[3] = row.read::<i64, _>("current").to_string();
+            account[4] = row.read::<&str, _>("last_use").to_string();
             res.push(account);
         }
         return res;
@@ -122,7 +157,7 @@ impl ConfigDatabase {
         platform: &str,
         username: &str,
         password: &str,
-    ) -> Result<String, String> {
+    ) -> Result<(), String> {
         match self.is_account_exist(platform, username) {
             Ok(true) => {
                 return Err(format!("Account {} already exists.", username));
@@ -168,7 +203,7 @@ impl ConfigDatabase {
                 return Err(info.to_string());
             }
         };
-        return Ok(String::new());
+        return Ok(());
     }
     #[allow(unused)]
     pub fn get_config(&self, name: &str) -> Vec<String> {

@@ -50,7 +50,12 @@ impl OnlineJudge for Codeforces {
             }
         };
         let mut params: HashMap<&str, &str> = HashMap::new();
-        let csrf_token = Self::get_csrf(&submit_page);
+        let csrf_token = match Self::get_csrf(&submit_page) {
+            Ok(csrf_token) => csrf_token,
+            Err(info) => {
+                return Err(String::from("Submit failed, ") + info.as_str());
+            }
+        };
         let ftaa = Self::get_ftaa();
         let bfaa = Self::get_bfaa();
         params.insert("csrf_token", &csrf_token);
@@ -103,7 +108,12 @@ impl OnlineJudge for Codeforces {
             }
         };
         let mut params: HashMap<&str, &str> = HashMap::new();
-        let csrf_token = Self::get_csrf(&login_page);
+        let csrf_token = match Self::get_csrf(&login_page) {
+            Ok(csrf_token) => csrf_token,
+            Err(info) => {
+                return Err(String::from("Login failed, ") + info.as_str());
+            }
+        };
         let ftaa = Self::get_ftaa();
         let bfaa = Self::get_bfaa();
 
@@ -439,15 +449,20 @@ impl Codeforces {
         random_str::get_string(18, true, false, true, false)
     }
 
-    fn get_csrf(body: &str) -> String {
+    fn get_csrf(body: &str) -> Result<String, String> {
         let re = match Regex::new(r#"csrf='(.+?)'"#) {
             Ok(re) => re,
-            Err(_) => return String::from(""),
+            Err(_) => {
+                return Err(String::from("Create regex failed."));
+            }
         };
-        match re.captures(body) {
+        let csrf = match re.captures(body) {
             Some(caps) => caps[1].to_string(),
-            None => String::from(""),
-        }
+            None => {
+                return Err(String::from("Parse csrf failed."));
+            }
+        };
+        return Ok(csrf);
     }
     fn to_hex_bytes(input: &str) -> [u8; 16] {
         let mut arr = [0; 32];
@@ -751,4 +766,21 @@ fn test_get_contest() {
             panic!("{}", info);
         }
     }
+}
+
+#[test]
+fn test_get_csrf_token() {
+    let content = match std::fs::read_to_string("assets/codeforces/login_page.html") {
+        Ok(content) => content,
+        Err(info) => {
+            panic!("{}", info);
+        }
+    };
+    let csrf = match Codeforces::get_csrf(&content) {
+        Ok(csrf) => csrf,
+        Err(info) => {
+            panic!("{}", info);
+        }
+    };
+    println!("{}", csrf);
 }

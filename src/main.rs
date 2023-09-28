@@ -6,5 +6,10 @@ mod model;
 mod platform;
 fn main() {
     misc::init_logger_configuration();
-    command::Cli::run();
+    match command::Cli::run() {
+        Ok(_) => {}
+        Err(info) => {
+            log::error!("{}", info)
+        }
+    }
 }
