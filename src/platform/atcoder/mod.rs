@@ -1,7 +1,8 @@
+use crate::library::OnlineJudge;
 use crate::misc::http_client::HttpClient;
+use crate::model::SubmissionInfo;
 mod builder;
 mod config;
-use super::lib::OnlineJudge;
 use builder::UrlBuilder;
 use soup::{NodeExt, QueryBuilderExt, Soup};
 pub struct AtCoder {
@@ -15,10 +16,35 @@ impl OnlineJudge for AtCoder {
         code: &str,
         lang_id: &str,
     ) -> Result<String, String> {
-        let _ = problem_identifier;
-        let _ = code;
-        let _ = lang_id;
-        todo!()
+        let vec = problem_identifier.split("_").collect::<Vec<_>>();
+        if vec.len() != 2 {
+            return Err(String::from("Invalid problem identifier."));
+        }
+        let contest_id = vec[0];
+
+        let submit_page_url = UrlBuilder::build_submit_page_url(contest_id);
+        let resp = match self.client.get(&submit_page_url) {
+            Ok(resp) => resp,
+            Err(info) => return Err(info),
+        };
+
+        let csrf_token = match Self::get_csrf(&resp) {
+            Some(token) => token,
+            None => {
+                return Err(String::from("Failed to get csrf token."));
+            }
+        };
+        let mut data = std::collections::HashMap::new();
+        data.insert("data.TaskScreenName", problem_identifier);
+        data.insert("data.LanguageId", lang_id);
+        data.insert("sourceCode", code);
+        data.insert("csrf_token", &csrf_token);
+        let submit_url = UrlBuilder::build_submit_url(contest_id);
+        let resp = match self.client.post_form(&submit_url, &data) {
+            Ok(resp) => resp,
+            Err(info) => return Err(info),
+        };
+        return Self::get_recent_submission_id(&resp);
     }
 
     fn is_login(&mut self) -> Result<String, String> {
@@ -60,15 +86,83 @@ impl OnlineJudge for AtCoder {
     /// Get test cases from AtCoder
     /// Success: Vec<[String; 2]> where [0] is input and [1] is output
     fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<[String; 2]>, String> {
-        let _ = problem_identifier;
-        todo!()
+        let problem_url = UrlBuilder::build_problem_url(problem_identifier);
+        let resp = match self.client.get(&problem_url) {
+            Ok(resp) => resp,
+            Err(info) => return Err(info),
+        };
+        let soup = Soup::new(&resp);
+        let mut inputs_ja = vec![];
+        let mut outputs_ja = vec![];
+        let mut inputs_en = vec![];
+        let mut outputs_en = vec![];
+
+        for h3 in soup.tag("h3").find_all() {
+            let text = h3.text();
+            if text.contains("入力例") {
+                let section = match h3.parent() {
+                    Some(section) => section,
+                    None => continue,
+                };
+
+                let pre = match section.tag("pre").find() {
+                    Some(pre) => pre,
+                    None => continue,
+                };
+                inputs_ja.push(pre.text());
+            } else if text.contains("出力例") {
+                let section = match h3.parent() {
+                    Some(section) => section,
+                    None => continue,
+                };
+
+                let pre = match section.tag("pre").find() {
+                    Some(pre) => pre,
+                    None => continue,
+                };
+                outputs_ja.push(pre.text());
+            } else if text.contains("Sample Input") {
+                let section = match h3.parent() {
+                    Some(section) => section,
+                    None => continue,
+                };
+                let pre = match section.tag("pre").find() {
+                    Some(pre) => pre,
+                    None => continue,
+                };
+                inputs_en.push(pre.text());
+            } else if text.contains("Sample Output") {
+                let section = match h3.parent() {
+                    Some(section) => section,
+                    None => continue,
+                };
+                let pre = match section.tag("pre").find() {
+                    Some(pre) => pre,
+                    None => continue,
+                };
+                outputs_en.push(pre.text());
+            }
+        }
+        let mut vec = Vec::new();
+        if !inputs_en.is_empty() && inputs_en.len() == outputs_en.len() {
+            for i in 0..inputs_en.len() {
+                vec.push([inputs_en[i].clone(), outputs_en[i].clone()]);
+            }
+        } else if !inputs_ja.is_empty() && inputs_ja.len() == outputs_ja.len() {
+            for i in 0..inputs_ja.len() {
+                vec.push([inputs_ja[i].clone(), outputs_ja[i].clone()]);
+            }
+        } else {
+            return Err(String::from("Failed to get test cases."));
+        }
+        return Ok(vec);
     }
 
     fn retrive_result(
         &mut self,
         problem_identifier: &str,
         submit_id: &str,
-    ) -> Result<super::lib::SubmissionInfo, String> {
+    ) -> Result<SubmissionInfo, String> {
         let _ = problem_identifier;
         let _ = submit_id;
         todo!()
@@ -108,7 +202,6 @@ impl AtCoder {
             host: String::from("https://atcoder.jp"),
         };
     }
-
     pub fn get_csrf(resp: &str) -> Option<String> {
         let re = match regex::Regex::new(r#"var csrfToken = "([\S]+)""#) {
             Ok(re) => re,
@@ -119,6 +212,16 @@ impl AtCoder {
             None => return None,
         };
         return Some(String::from(&caps[1]));
+    }
+    pub fn get_recent_submission_id(resp: &str) -> Result<String, String> {
+        let soup = Soup::new(&resp);
+        for ele in soup.tag("td").attr("class", "submission-score").find_all() {
+            match ele.get("data-id") {
+                Some(id) => return Ok(String::from(id)),
+                None => continue,
+            }
+        }
+        return Err(String::from("Failed to get recent submit id."));
     }
 }
 
@@ -141,14 +244,13 @@ fn test_login() {
         }
     };
     let mut atc = AtCoder::new("");
-    let resp = match atc.login(&username, &password) {
+    let _ = match atc.login(&username, &password) {
         Ok(resp) => resp,
         Err(info) => {
             println!("Failed to login, {}", info);
             return;
         }
     };
-    println!("{}", resp);
 }
 
 #[test]
@@ -185,4 +287,105 @@ fn test_get_problems() {
             println!("Failed to get problems, {}", info)
         }
     }
+}
+
+#[test]
+#[ignore = "reason: need login"]
+fn test_get_test_cases() {
+    dotenv::dotenv().ok();
+    let username = match dotenv::var("ATCODER_USERNAME") {
+        Ok(username) => username,
+        Err(info) => {
+            println!("Failed to get username, {}", info);
+            return;
+        }
+    };
+    let password = match dotenv::var("ATCODER_PASSWORD") {
+        Ok(password) => password,
+        Err(info) => {
+            println!("Failed to get password, {}", info);
+            return;
+        }
+    };
+    let mut atc = AtCoder::new("");
+    let _ = match atc.login(&username, &password) {
+        Ok(resp) => resp,
+        Err(info) => {
+            println!("Failed to login, {}", info);
+            return;
+        }
+    };
+    match atc.get_test_cases("abc165_c") {
+        Ok(test_cases) => {
+            println!("{:?}", test_cases);
+        }
+        Err(info) => {
+            println!("Failed to get test cases, {}", info);
+        }
+    }
+}
+
+#[test]
+#[ignore = "reason: need login"]
+fn test_submit() {
+    dotenv::dotenv().ok();
+    let username = match dotenv::var("ATCODER_USERNAME") {
+        Ok(username) => username,
+        Err(info) => {
+            println!("Failed to get username, {}", info);
+            return;
+        }
+    };
+    let password = match dotenv::var("ATCODER_PASSWORD") {
+        Ok(password) => password,
+        Err(info) => {
+            println!("Failed to get password, {}", info);
+            return;
+        }
+    };
+    let mut atc = AtCoder::new("");
+    let _ = match atc.login(&username, &password) {
+        Ok(resp) => resp,
+        Err(info) => {
+            println!("Failed to login, {}", info);
+            return;
+        }
+    };
+    let code = r#"
+#include <iostream>
+using namespace std;
+int main() {
+    int a, b;
+    cin >> a >> b;
+    cout << a + b << endl;
+    return 0;
+}
+    "#;
+    let resp = match atc.submit("arc165_b", code, "5001") {
+        Ok(resp) => resp,
+        Err(info) => {
+            println!("Failed to submit, {}", info);
+            return;
+        }
+    };
+    HttpClient::debug_save(&resp, ".html");
+}
+
+#[test]
+fn test_parse_recent_submission_id() {
+    let resp = match std::fs::read_to_string("assets/atcoder/submitted.html") {
+        Ok(resp) => resp,
+        Err(info) => {
+            println!("Failed to read file, {}", info);
+            return;
+        }
+    };
+    let id = match AtCoder::get_recent_submission_id(&resp) {
+        Ok(resp) => resp,
+        Err(info) => {
+            println!("Failed to get recent submission id, {}", info);
+            return;
+        }
+    };
+    println!("{}", id);
 }

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 mod builder;
 mod config;
-use super::lib::SubmissionInfo;
-use super::lib::Verdict;
+use crate::library::OnlineJudge;
 use crate::misc::http_client::HttpClient;
-use crate::platform::lib::OnlineJudge;
+use crate::model::SubmissionInfo;
+use crate::model::Verdict;
 use builder::UrlBuilder;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
 use regex::Regex;
@@ -181,7 +181,7 @@ impl OnlineJudge for Codeforces {
 
     fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<String>, String> {
         let problem_list_url = UrlBuilder::build_problem_list_url(contest_identifier);
-        let resp = match self.client.get(&problem_list_url){
+        let resp = match self.client.get(&problem_list_url) {
             Ok(resp) => resp,
             Err(info) => {
                 return Err(info);
@@ -190,10 +190,10 @@ impl OnlineJudge for Codeforces {
 
         let soup = Soup::new(&resp);
         let table = match soup.tag("table").attr("class", "problems").find() {
-            Some(table) => {table},
+            Some(table) => table,
             None => {
                 return Err(String::from("Parse problem list failed."));
-            },
+            }
         };
         let trs = table.tag("tr").find_all();
         let mut problems = Vec::new();
@@ -472,7 +472,7 @@ fn test_login() {
 
 #[test]
 #[ignore = "local test"]
-fn test_get_problems(){
+fn test_get_problems() {
     dotenv::dotenv().ok();
     let mut cf = Codeforces::new("");
     let username = match dotenv::var("CODEFORCES_USERNAME") {

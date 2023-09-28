@@ -1,5 +1,5 @@
 /target
 example/
-*.html
 *.sqlite
 .env
+/*.html
