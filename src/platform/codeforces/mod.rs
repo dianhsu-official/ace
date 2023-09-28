@@ -3,10 +3,13 @@ mod builder;
 mod config;
 use crate::library::OnlineJudge;
 use crate::misc::http_client::HttpClient;
+use crate::model::Contest;
+use crate::model::ContestStatus::{Ended, NotStarted, Running};
 use crate::model::SubmissionInfo;
 use crate::model::Verdict;
 use builder::UrlBuilder;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use regex::Regex;
 use soup::prelude::*;
 use soup::Soup;
@@ -215,6 +218,78 @@ impl OnlineJudge for Codeforces {
         }
         return Ok(problems);
     }
+
+    fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
+        let contest_url = UrlBuilder::build_contest_url(contest_identifier);
+        let resp = match self.client.get(&contest_url) {
+            Ok(resp) => resp,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let soup = Soup::new(&resp);
+        let tr = match soup
+            .tag("tr")
+            .attr("data-contestid", contest_identifier)
+            .find()
+        {
+            Some(tr) => tr,
+            None => {
+                return Err(String::from("Parse contest failed."));
+            }
+        };
+        let tds = tr.tag("td").find_all().collect::<Vec<_>>();
+        if tds.len() != 6 {
+            return Err(String::from("Parse contest failed."));
+        }
+        let mut title = String::from("");
+        for ele in tds[0].children() {
+            if ele.is_text() {
+                title = ele.text();
+                break;
+            }
+        }
+        let start_time_archor = match tds[2].tag("a").find() {
+            Some(start_time_archor) => start_time_archor,
+            None => {
+                return Err(String::from("Parse contest failed."));
+            }
+        };
+        let start_time_href = match start_time_archor.get("href") {
+            Some(start_time_href) => start_time_href,
+            None => {
+                return Err(String::from("Parse contest failed."));
+            }
+        };
+        let duration = tds[3].text().trim().to_string();
+        let start_time = match Self::get_start_time(&start_time_href) {
+            Ok(start_time) => start_time,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let end_time = match Self::get_end_time(start_time, &duration) {
+            Ok(end_time) => end_time,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let mut contest = Contest {
+            identifier: contest_identifier.to_string(),
+            title: title.trim().to_string(),
+            start_time,
+            end_time,
+            status: NotStarted,
+        };
+        if start_time > Utc::now() {
+            contest.status = NotStarted;
+        } else if Utc::now() <= end_time {
+            contest.status = Running;
+        } else {
+            contest.status = Ended;
+        }
+        return Ok(contest);
+    }
 }
 
 impl Codeforces {
@@ -224,6 +299,138 @@ impl Codeforces {
         Self {
             client: HttpClient::new(cookies, &endpoint),
         }
+    }
+    fn get_end_time(start_time: DateTime<Utc>, duration: &str) -> Result<DateTime<Utc>, String> {
+        let time_vec = duration.split(":").collect::<Vec<_>>();
+        let mut end_time = start_time;
+        if time_vec.len() == 2 {
+            let hour = match time_vec[0].parse::<i64>() {
+                Ok(hour) => hour,
+                Err(_) => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+            let min = match time_vec[1].parse::<i64>() {
+                Ok(min) => min,
+                Err(_) => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+            end_time = match end_time.checked_add_signed(Duration::hours(hour)) {
+                Some(end_time) => end_time,
+                None => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+            end_time = match end_time.checked_add_signed(Duration::minutes(min)) {
+                Some(end_time) => end_time,
+                None => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+        } else if time_vec.len() == 3 {
+            let day = match time_vec[0].parse::<i64>() {
+                Ok(day) => day,
+                Err(_) => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+            let hour = match time_vec[1].parse::<i64>() {
+                Ok(hour) => hour,
+                Err(_) => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+            let min = match time_vec[2].parse::<i64>() {
+                Ok(min) => min,
+                Err(_) => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+            end_time = match end_time.checked_add_signed(Duration::days(day)) {
+                Some(end_time) => end_time,
+                None => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+            end_time = match end_time.checked_add_signed(Duration::hours(hour)) {
+                Some(end_time) => end_time,
+                None => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+            end_time = match end_time.checked_add_signed(Duration::minutes(min)) {
+                Some(end_time) => end_time,
+                None => {
+                    return Err(String::from("Parse end time failed."));
+                }
+            };
+        } else {
+            return Err(String::from("Parse end time failed."));
+        }
+        return Ok(end_time);
+    }
+    fn get_start_time(start_time_href: &str) -> Result<DateTime<Utc>, String> {
+        let re = match Regex::new(
+            r#"\?day=(\d+)&month=(\d+)&year=(\d+)&hour=(\d+)&min=(\d+)&sec=(\d+)&"#,
+        ) {
+            Ok(re) => re,
+            Err(_) => {
+                return Err(String::from("Create regex failed."));
+            }
+        };
+        let caps = match re.captures(start_time_href) {
+            Some(caps) => caps,
+            None => {
+                return Err(String::from("Parse start time failed."));
+            }
+        };
+        let day = match caps[1].parse::<u32>() {
+            Ok(day) => day,
+            Err(_) => {
+                return Err(String::from("Parse start time failed."));
+            }
+        };
+        let month = match caps[2].parse::<u32>() {
+            Ok(month) => month,
+            Err(_) => {
+                return Err(String::from("Parse start time failed."));
+            }
+        };
+        let year = match caps[3].parse::<i32>() {
+            Ok(year) => year,
+            Err(_) => {
+                return Err(String::from("Parse start time failed."));
+            }
+        };
+        let hour = match caps[4].parse::<u32>() {
+            Ok(hour) => hour,
+            Err(_) => {
+                return Err(String::from("Parse start time failed."));
+            }
+        };
+        let min = match caps[5].parse::<u32>() {
+            Ok(min) => min,
+            Err(_) => {
+                return Err(String::from("Parse start time failed."));
+            }
+        };
+        let sec = match caps[6].parse::<u32>() {
+            Ok(sec) => sec,
+            Err(_) => {
+                return Err(String::from("Parse start time failed."));
+            }
+        };
+        let start_time = match Utc
+            .with_ymd_and_hms(year, month, day, hour, min, sec)
+            .single()
+        {
+            Some(parsed_time) => parsed_time,
+            None => {
+                return Err(String::from("Parse start time failed."));
+            }
+        };
+        return Ok(start_time);
     }
     fn get_bfaa() -> String {
         String::from("f1b3f18c715565b589b7823cda7448ce")
@@ -525,6 +732,20 @@ fn test_get_verdict() {
     match cf.retrive_result("1872_A", "223223698") {
         Ok(submission_info) => {
             println!("{:?}", submission_info);
+        }
+        Err(info) => {
+            panic!("{}", info);
+        }
+    }
+}
+
+#[test]
+#[ignore = "local test"]
+fn test_get_contest() {
+    let mut cf = Codeforces::new("");
+    match cf.get_contest("1881") {
+        Ok(contest) => {
+            println!("{:?}", contest);
         }
         Err(info) => {
             panic!("{}", info);

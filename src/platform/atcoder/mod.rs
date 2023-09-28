@@ -1,9 +1,11 @@
 use crate::misc::http_client::HttpClient;
-use crate::model::SubmissionInfo;
+use crate::model::ContestStatus::{Ended, NotStarted, Running};
+use crate::model::{Contest, SubmissionInfo};
 use crate::{library::OnlineJudge, model::Verdict};
 mod builder;
 mod config;
 use builder::UrlBuilder;
+use chrono::{DateTime, FixedOffset, NaiveDate, NaiveTime, TimeZone, Utc};
 use soup::{NodeExt, QueryBuilderExt, Soup};
 pub struct AtCoder {
     pub client: HttpClient,
@@ -239,6 +241,64 @@ impl OnlineJudge for AtCoder {
         }
         return Ok(problems);
     }
+
+    fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
+        let contest_url = UrlBuilder::build_contest_url(contest_identifier);
+        let resp = match self.client.get(&contest_url) {
+            Ok(resp) => resp,
+            Err(info) => return Err(info),
+        };
+        let soup = Soup::new(&resp);
+        let title = match soup.tag("h1").attr("class", "text-center").find() {
+            Some(title) => title.text(),
+            None => return Err(String::from("Failed to find title.")),
+        };
+        let contest_duration = match soup.tag("small").find() {
+            Some(contest_duration) => contest_duration,
+            None => return Err(String::from("Failed to find contest duration.")),
+        };
+        let contest_duration_nodes = contest_duration.tag("a").find_all().collect::<Vec<_>>();
+        if contest_duration_nodes.len() != 2 {
+            return Err(String::from("Failed to find contest duration nodes."));
+        }
+        let start_duration_node = &contest_duration_nodes[0];
+        let end_duration_node = &contest_duration_nodes[1];
+        let start_duration_href = match start_duration_node.get("href") {
+            Some(start_duration_href) => start_duration_href,
+            None => {
+                return Err(String::from("Failed to find start duration href."));
+            }
+        };
+        let end_duration_href = match end_duration_node.get("href") {
+            Some(end_duration_href) => end_duration_href,
+            None => {
+                return Err(String::from("Failed to find end duration href."));
+            }
+        };
+        let start_time = match Self::get_datetime_from_href(&start_duration_href) {
+            Ok(start_time) => start_time,
+            Err(info) => return Err(info),
+        };
+        let end_time = match Self::get_datetime_from_href(&end_duration_href) {
+            Ok(end_time) => end_time,
+            Err(info) => return Err(info),
+        };
+        let mut contest = Contest {
+            identifier: String::from(contest_identifier),
+            title: title,
+            start_time: start_time,
+            end_time: end_time,
+            status: NotStarted,
+        };
+        if start_time > Utc::now() {
+            contest.status = NotStarted;
+        } else if end_time >= Utc::now() {
+            contest.status = Running;
+        } else {
+            contest.status = Ended;
+        }
+        return Ok(contest);
+    }
 }
 impl AtCoder {
     #[allow(unused)]
@@ -247,6 +307,46 @@ impl AtCoder {
             client: HttpClient::new(cookies, "https://atcoder.jp"),
             host: String::from("https://atcoder.jp"),
         };
+    }
+    pub fn get_datetime_from_href(href: &str) -> Result<DateTime<Utc>, String> {
+        let re = match regex::Regex::new(r#"iso=([\d]+T[\d]+)"#) {
+            Ok(re) => re,
+            Err(_) => return Err(String::from("Failed to create regex.")),
+        };
+        let caps = match re.captures(&href) {
+            Some(caps) => caps,
+            None => {
+                return Err(String::from("Failed to find start time caps."));
+            }
+        };
+        let datetime_str = match caps.get(1) {
+            Some(datetime_str) => datetime_str.as_str(),
+            None => {
+                return Err(String::from("Failed to find time."));
+            }
+        };
+        let naive_time = match NaiveTime::parse_from_str(datetime_str, "%Y%m%dT%H%M") {
+            Ok(naive_time) => naive_time,
+            Err(info) => {
+                return Err(format!("Failed to parse time, {}", info));
+            }
+        };
+        let naive_date = match NaiveDate::parse_from_str(datetime_str, "%Y%m%dT%H%M") {
+            Ok(naive_date) => naive_date,
+            Err(info) => {
+                return Err(format!("Failed to parse time, {}", info));
+            }
+        };
+        let tz_offset = match FixedOffset::east_opt(9 * 3600) {
+            Some(tz_offset) => tz_offset,
+            None => {
+                return Err(String::from("Failed to get timezone offset."));
+            }
+        };
+        let naive_dt = naive_date.and_time(naive_time);
+        let dt_with_tz = tz_offset.from_local_datetime(&naive_dt).unwrap();
+        let parsed_time = Utc.from_utc_datetime(&dt_with_tz.naive_utc());
+        return Ok(parsed_time);
     }
     pub fn get_csrf(resp: &str) -> Option<String> {
         let re = match regex::Regex::new(r#"var csrfToken = "([\S]+)""#) {
@@ -475,4 +575,44 @@ fn test_retrieve_result() {
             return;
         }
     };
+}
+
+#[test]
+#[ignore = "reason: need login"]
+fn test_get_contest() {
+    dotenv::dotenv().ok();
+    let username = match dotenv::var("ATCODER_USERNAME") {
+        Ok(username) => username,
+        Err(info) => {
+            println!("Failed to get username, {}", info);
+            return;
+        }
+    };
+    let password = match dotenv::var("ATCODER_PASSWORD") {
+        Ok(password) => password,
+        Err(info) => {
+            println!("Failed to get password, {}", info);
+            return;
+        }
+    };
+    let mut atc = AtCoder::new("");
+    let _ = match atc.login(&username, &password) {
+        Ok(resp) => resp,
+        Err(info) => {
+            println!("Failed to login, {}", info);
+            return;
+        }
+    };
+    let resp = match atc.get_contest("abc322") {
+        Ok(resp) => resp,
+        Err(info) => {
+            println!("Failed to get contest, {}", info);
+            return;
+        }
+    };
+    let local_start_time = resp.start_time.with_timezone(&chrono::Local);
+    let local_end_time = resp.end_time.with_timezone(&chrono::Local);
+    println!("{}, {}", local_start_time, local_end_time);
+
+    println!("{:?}", resp)
 }

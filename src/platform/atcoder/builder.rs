@@ -10,6 +10,9 @@ impl UrlBuilder {
     pub fn build_login_url() -> String {
         return String::from("https://atcoder.jp/login");
     }
+    pub fn build_contest_url(contest_identifier: &str) -> String {
+        return String::from(format!("https://atcoder.jp/contests/{}", contest_identifier));
+    }
     pub fn build_problem_list_url(contest_identifier: &str) -> String {
         return String::from(format!(
             "https://atcoder.jp/contests/{}/tasks",

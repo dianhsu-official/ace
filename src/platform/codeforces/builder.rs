@@ -8,13 +8,15 @@ impl UrlBuilder {
 
     submit_id: The submit id of the submission.
     */
-    pub fn build_submission_url(contest_id: &str, submit_id: &str) -> String {
+    pub fn build_submission_url(contest_id: &str, submission_id: &str) -> String {
         return format!(
             "https://codeforces.com/contest/{}/submission/{}",
-            contest_id, submit_id
+            contest_id, submission_id
         );
     }
-
+    pub fn build_contest_url(contest_identifier: &str) -> String {
+        return format!("https://codeforces.com/contests/{}", contest_identifier);
+    }
     pub fn build_problem_url(contest_id: &str, problem_id: &str) -> String {
         return format!(
             "https://codeforces.com/contest/{}/problem/{}",
@@ -33,7 +35,6 @@ impl UrlBuilder {
             contest_id, csrf_token
         );
     }
-
     pub fn build_index_url() -> String {
         return String::from("https://codeforces.com/");
     }

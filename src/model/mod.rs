@@ -1,3 +1,5 @@
+use chrono::{DateTime, Utc};
+
 #[derive(Debug)]
 pub enum Verdict {
     Waiting = 0,  // Waiting for judge or judge in progress
@@ -34,8 +36,8 @@ pub enum ContestStatus {
 #[derive(Debug)]
 pub struct Contest {
     pub identifier: String,
-    pub name: String,
-    pub start_time: String,
-    pub end_time: String,
+    pub title: String,
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
     pub status: ContestStatus,
 }
