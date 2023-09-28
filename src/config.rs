@@ -10,7 +10,8 @@ pub struct CodeTemplate {
     pub script: String,
     pub after_script: String,
 }
-
+pub const CODEFORCES: [&'static str; 2] = ["codeforces", "cf"];
+pub const ATCODER: [&'static str; 3] = ["atcoder", "ac", "atc"];
 pub enum ProgramLanguage {
     C,
     Cpp,

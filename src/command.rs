@@ -1,19 +1,16 @@
 use clap::{Args, Parser, Subcommand};
 
+use crate::config::{ATCODER, CODEFORCES};
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     command: Commands,
-
-    #[arg(short, long)]
-    directory: Option<String>,
 }
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Parse contest from platform
-    Parse(ParseArgs),
-    /// Manage account
+    /// Manage account for ace, such as add, remove, list
     Account(AccountArgs),
     // Config
     Config,
@@ -28,13 +25,28 @@ pub struct ParseArgs {
 
 #[derive(Args)]
 pub struct AccountArgs {
+    /// Set the platform
     #[arg(short, long)]
     platform: String,
 }
 
 impl Cli {
-    #[allow(unused_variables)]
     pub fn run() {
         let cli = Cli::parse();
+        match cli.command {
+            Commands::Account(args) => {
+                let platform = args.platform;
+                if CODEFORCES.contains(&platform.as_str()) {
+                    println!("Codeforces");
+                } else if ATCODER.contains(&platform.as_str()) {
+                    println!("Atcoder");
+                } else {
+                    println!("Unknown platform");
+                }
+            }
+            Commands::Config => {
+                println!("Config");
+            }
+        }
     }
 }

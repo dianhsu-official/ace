@@ -22,3 +22,13 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 | Get problem list | ✅       | ✅          |
 | Get test cases   | ✅       | ✅          |
 | Get contest      | ✅       | ✅          |
+
+
+## Commands
+
+###  Generic 
+
+| Command     | Description       | Progress |
+| ----------- | ----------------- | -------- |
+| ace account | user management   | Pending  |
+| ace config  | config management | Pending  |
