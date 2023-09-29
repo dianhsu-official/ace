@@ -1,6 +1,5 @@
 use std::io::Write;
 
-pub mod database;
 pub mod http_client;
 pub mod utility;
 pub fn init_logger_configuration() {

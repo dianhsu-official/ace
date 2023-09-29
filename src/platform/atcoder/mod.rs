@@ -1,6 +1,6 @@
 use crate::config::Platform;
 use crate::library::OnlineJudge;
-use crate::misc::database::CONFIG_DB;
+use crate::database::CONFIG_DB;
 use crate::misc::http_client::HttpClient;
 use crate::model::{Contest, SubmissionInfo};
 mod builder;

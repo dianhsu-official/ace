@@ -1,30 +1,13 @@
-use lazy_static::lazy_static;
-use sqlite::{self};
-use std::fs::create_dir_all;
-use std::path::Path;
-use std::process::exit;
-
 use crate::config::Platform;
 
-lazy_static! {
-    pub static ref CONFIG_DB: ConfigDatabase = ConfigDatabase::new();
-}
-
-pub struct ConfigDatabase {
-    pub connection: sqlite::ConnectionWithFullMutex,
-}
-
-const INIT_QUERY: &str = "
-CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, value TEXT);
-CREATE TABLE IF NOT EXISTS account (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, username TEXT, password TEXT, cookies TEXT default \"\", last_use TEXT default \"1970-01-01T00:00:00+00:00\", current INTEGER DEFAULT 0);
-";
+use super::ConfigDatabase;
 impl ConfigDatabase {
     pub fn remove_accounts(&self, platform: Platform, usernames: Vec<String>) {
         let query = format!(
             "DELETE FROM account WHERE platform = ? and username in ('{}')",
             usernames.join("','")
         );
-        let mut stmt = match CONFIG_DB.connection.prepare(query) {
+        let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
             Err(info) => {
                 log::error!("{}", info);
@@ -46,33 +29,6 @@ impl ConfigDatabase {
                 return;
             }
         };
-    }
-    pub fn create_from_path(config_path: &Path) -> Self {
-        let connection: sqlite::ConnectionWithFullMutex =
-            match sqlite::Connection::open_with_full_mutex(config_path) {
-                Ok(conn) => conn,
-                Err(info) => {
-                    log::error!("{}", info);
-                    exit(1);
-                }
-            };
-        match connection.execute(INIT_QUERY) {
-            Ok(_) => {}
-            Err(info) => {
-                log::error!("{}", info);
-                exit(1);
-            }
-        }
-        Self { connection }
-    }
-    pub fn new() -> Self {
-        let pathbuf = home::home_dir().unwrap();
-        let config_dir = pathbuf.join(".ace");
-        create_dir_all(&config_dir).unwrap();
-
-        let binding = config_dir.join("config.sqlite");
-        let config_path = binding.as_path();
-        return Self::create_from_path(config_path);
     }
     /// Get the current account of the platform.
     pub fn get_accounts(&self, platform: Option<Platform>) -> Vec<[String; 6]> {
@@ -139,7 +95,6 @@ impl ConfigDatabase {
             return res;
         }
     }
-
     /// Check if the account exists.
     pub fn is_account_exist(&self, platform: Platform, username: &str) -> Result<bool, String> {
         let query = format!("SELECT COUNT(*) FROM account WHERE platform = ? AND username = ?");
@@ -186,6 +141,55 @@ impl ConfigDatabase {
         }
     }
 
+    pub fn set_default_account(&self, platform: Platform, username: &str) -> Result<(), String> {
+        let clear_query = format!("UPDATE account SET current = 0 WHERE platform = ?");
+        let mut stmt = match self.connection.prepare(clear_query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        let platform_str = platform.to_string();
+        match stmt.bind((1, platform_str.as_str())) {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.next() {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        let set_query =
+            format!("UPDATE account SET current = 1 WHERE platform = ? AND username = ?");
+        let mut stmt = match self.connection.prepare(set_query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.bind((1, platform_str.as_str())) {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.bind((2, username)) {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.next() {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        return Ok(());
+    }
     pub fn save_cookies(
         &self,
         platform: Platform,
@@ -291,56 +295,45 @@ impl ConfigDatabase {
         };
         return Ok(());
     }
-    #[allow(unused)]
-    pub fn get_config(&self, name: &str) -> Vec<String> {
-        let query = format!("SELECT value FROM config WHERE name = ?");
-        let mut res = Vec::new();
-        for row in self
-            .connection
-            .prepare(query)
-            .unwrap()
-            .into_iter()
-            .bind((1, name))
-            .unwrap()
-            .map(|row| row.unwrap())
-        {
-            res.push(row.read::<&str, _>("value").to_string());
-        }
-        return res;
-    }
-    #[allow(unused)]
-    pub fn set_config(&self, name: &str, value: &str) -> bool {
-        let query = format!("INSERT OR REPLACE INTO config (name, value) VALUES (?, ?)");
+
+    pub fn update_password(
+        &self,
+        platform: &str,
+        username: &str,
+        password: &str,
+    ) -> Result<(), String> {
+        let query = format!("UPDATE account SET password = ? WHERE platform = ? AND username = ?");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
-            Err(_) => return false,
+            Err(info) => {
+                return Err(info.to_string());
+            }
         };
-        match stmt.bind((1, name)) {
+        match stmt.bind((1, password)) {
             Ok(_) => {}
-            Err(_) => return false,
+            Err(info) => {
+                log::error!("{}", info);
+                return Err(info.to_string());
+            }
         };
-        match stmt.bind((2, value)) {
+        match stmt.bind((2, platform)) {
             Ok(_) => {}
-            Err(_) => return false,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.bind((3, username)) {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
         };
         match stmt.next() {
-            Ok(_) => return true,
-            Err(_) => return false,
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
         };
-    }
-}
-
-#[test]
-fn test_config_database() {
-    let path_str = format!("test_{}.sqlite", rand::random::<u64>());
-    let config_db_path = Path::new(&path_str);
-    let config_db = ConfigDatabase::create_from_path(config_db_path);
-    let mut res = config_db.add_account(Platform::Codeforces, "dianhsu", "xudian");
-    assert_eq!(res.is_ok(), true);
-    res = config_db.add_account(Platform::Codeforces, "dianhsu", "xudian");
-    assert_eq!(res.is_ok(), false);
-    let res = config_db.get_accounts(Some(Platform::Codeforces));
-    for account in res {
-        println!("{:?}", account);
+        return Ok(());
     }
 }

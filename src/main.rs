@@ -1,5 +1,6 @@
 mod command;
 mod config;
+mod database;
 mod library;
 mod misc;
 mod model;

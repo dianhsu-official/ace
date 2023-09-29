@@ -1,16 +1,17 @@
-use crate::config::Platform;
-use crate::config::PLATFORMS;
-use crate::misc::database::CONFIG_DB;
+use std::fmt::Display;
+
 use chrono::DateTime;
-use inquire::min_length;
-use inquire::MultiSelect;
-use inquire::Password;
-use inquire::PasswordDisplayMode;
-use inquire::Text;
+use inquire::{min_length, MultiSelect, Password, PasswordDisplayMode, Text};
 use prettytable::{Cell, Row, Table};
-pub struct Utility {}
-impl Utility {
-    fn get_platform_from_cmd(platform_from_cmd: Option<Platform>) -> Result<Platform, String> {
+
+use crate::{
+    config::{Platform, PLATFORMS},
+    database::CONFIG_DB,
+};
+
+pub struct AccountUtility {}
+impl AccountUtility {
+    pub fn get_platform_from_cmd(platform_from_cmd: Option<Platform>) -> Result<Platform, String> {
         match platform_from_cmd {
             Some(platform) => Ok(platform),
             None => {
@@ -128,11 +129,62 @@ impl Utility {
             return Err(String::from("No account"));
         }
         let _ = match inquire::Select::new("Choose an account", options).prompt() {
-            Ok(ans) => ans,
+            Ok(ans) => {
+                match CONFIG_DB.set_default_account(platform, &ans) {
+                    Ok(_) => {}
+                    Err(info) => {
+                        return Err(info);
+                    }
+                };
+            }
             Err(_) => {
                 return Err(String::from("Error when choosing an account"));
             }
         };
         return Ok(());
+    }
+    #[allow(unused)]
+    pub fn update_password(platform_from_cmd: Option<Platform>) -> Result<(), String> {
+        let accounts = CONFIG_DB.get_accounts(platform_from_cmd);
+        let mut options = Vec::new();
+        for account in accounts {
+            options.push(AccountOptions {
+                username: account[0].clone(),
+                last_use: account[4].clone(),
+                platform: account[5].clone(),
+            });
+        }
+        if options.is_empty() {
+            return Err(String::from("No account"));
+        }
+        let account = match inquire::Select::new("Choose an account", options).prompt() {
+            Ok(account) => account,
+            Err(_) => {
+                return Err(String::from("Error when choosing an account"));
+            }
+        };
+        let password = match Password::new("Enter your password: ")
+            .with_display_mode(PasswordDisplayMode::Masked)
+            .with_formatter(&|password| "*".repeat(password.len()))
+            .with_validator(min_length!(1, "Password cannot be empty"))
+            .prompt()
+        {
+            Ok(password) => password,
+            Err(_) => {
+                return Err("Password cannot be empty".to_string());
+            }
+        };
+        return CONFIG_DB.update_password(&account.platform, &account.username, &password);
+    }
+}
+
+struct AccountOptions {
+    username: String,
+    platform: String,
+    last_use: String,
+}
+impl Display for AccountOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(format!("{} ({}, {})", self.username, self.platform, self.last_use).as_str())
     }
 }

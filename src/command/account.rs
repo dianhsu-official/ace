@@ -1,5 +1,4 @@
-use crate::config::PLATFORM_MAP;
-use crate::misc::utility::Utility;
+use crate::{config::PLATFORM_MAP, misc::utility::account::AccountUtility};
 use clap::{Args, Subcommand};
 #[derive(Subcommand)]
 pub enum AccountOptions {
@@ -30,7 +29,7 @@ impl AccountCommand {
             None => None,
         };
         match args.options {
-            AccountOptions::Add => match Utility::create_account(real_platform) {
+            AccountOptions::Add => match AccountUtility::create_account(real_platform) {
                 Ok(username) => {
                     println!("Account {} added.", username);
                 }
@@ -39,7 +38,7 @@ impl AccountCommand {
                 }
             },
             AccountOptions::ChooseDefault => {
-                let _ = match Utility::choose_default_account(real_platform) {
+                let _ = match AccountUtility::choose_default_account(real_platform) {
                     Ok(_) => {}
                     Err(info) => {
                         return Err(info);
@@ -48,9 +47,15 @@ impl AccountCommand {
             }
             AccountOptions::UpdatePassword => {
                 println!("Update password");
+                let _ = match AccountUtility::update_password(real_platform){
+                    Ok(_) => {}
+                    Err(info) => {
+                        return Err(info);
+                    }
+                };
             }
             AccountOptions::List => {
-                let _ = match Utility::get_account_list(real_platform) {
+                let _ = match AccountUtility::get_account_list(real_platform) {
                     Ok(_) => {}
                     Err(info) => {
                         return Err(info);
@@ -58,7 +63,7 @@ impl AccountCommand {
                 };
             }
             AccountOptions::Remove => {
-                let _ = match Utility::remove_select_account(real_platform) {
+                let _ = match AccountUtility::remove_select_account(real_platform) {
                     Ok(_) => {}
                     Err(info) => {
                         return Err(info);
