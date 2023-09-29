@@ -16,11 +16,18 @@ pub struct Cli {
 impl Cli {
     pub fn run() -> Result<(), String> {
         let cli = Cli::parse();
-        let _ = match cli.command {
+        let res = match cli.command {
             Commands::Account(args) => AccountCommand::handle(args),
             Commands::Config(args) => ConfigCommand::handle(args),
         };
-
+        match res {
+            Ok(res) => {
+                println!("{}", res);
+            }
+            Err(info) => {
+                println!("{}", info);
+            }
+        }
         return Ok(());
     }
 }

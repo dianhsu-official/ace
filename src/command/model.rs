@@ -26,7 +26,8 @@ pub struct AccountArgs {
 #[derive(Subcommand)]
 pub enum ConfigOptions {
     Get,
-    Create,
+    Add,
+    List,
     Set,
     Remove,
 }

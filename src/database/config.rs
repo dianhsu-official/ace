@@ -54,8 +54,8 @@ impl ConfigDatabase {
         }
         return Err(String::from("No such config"));
     }
-    pub fn list_config(&self) -> Vec<String> {
-        let query = format!("SELECT name FROM config");
+    pub fn list_config(&self) -> Vec<[String; 2]> {
+        let query = format!("SELECT name, value FROM config");
         let mut res = Vec::new();
         let stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
@@ -65,15 +65,15 @@ impl ConfigDatabase {
             Ok(row) => Some(row),
             Err(_) => None,
         }) {
-            res.push(row.read::<&str, _>("name").to_string());
+            let mut item = [String::new(), String::new()];
+            item[0] = row.read::<&str, _>("name").to_string();
+            item[1] = row.read::<&str, _>("value").to_string();
+            res.push(item);
         }
         return res;
     }
     pub fn remove_config(&self, names: Vec<String>) -> Result<(), String> {
-        let query = format!(
-            "DELETE FROM config WHERE name in ('{}')",
-            names.iter().map(|_| "?").collect::<Vec<_>>().join("', '")
-        );
+        let query = format!("DELETE FROM config WHERE name in ('{}')", names.join("','"));
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
             Err(info) => {
