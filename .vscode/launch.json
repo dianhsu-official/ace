@@ -5,19 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "lldb",
+            "type": "cppvsdbg",
             "request": "launch",
             "name": "Cargo test",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--lib",
-                ]
-            },
-            "args": [
-                "--nocapture"
-            ]
+            "program": "${workspaceRoot}/target/debug/ace.exe",
+            "cwd": "${workspaceRoot}",
+            "args": []
         }
     ]
 }

@@ -1,12 +1,14 @@
+use crate::library::OnlineJudge;
 use crate::misc::http_client::HttpClient;
-use crate::model::ContestStatus::{Ended, NotStarted, Running};
 use crate::model::{Contest, SubmissionInfo};
-use crate::{library::OnlineJudge, model::Verdict};
 mod builder;
 mod config;
+mod parser;
+mod utility;
 use builder::UrlBuilder;
-use chrono::{DateTime, FixedOffset, NaiveDate, NaiveTime, TimeZone, Utc};
-use soup::{NodeExt, QueryBuilderExt, Soup};
+
+use self::parser::HtmlParser;
+use self::utility::Utility;
 pub struct AtCoder {
     pub client: HttpClient,
     pub host: String,
@@ -30,7 +32,7 @@ impl OnlineJudge for AtCoder {
             Err(info) => return Err(info),
         };
 
-        let csrf_token = match Self::get_csrf(&resp) {
+        let csrf_token = match Utility::get_csrf(&resp) {
             Some(token) => token,
             None => {
                 return Err(String::from("Failed to get csrf token."));
@@ -46,7 +48,7 @@ impl OnlineJudge for AtCoder {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
-        return Self::get_recent_submission_id(&resp);
+        return HtmlParser::parse_recent_submission_id(&resp);
     }
 
     fn is_login(&mut self) -> Result<String, String> {
@@ -67,7 +69,7 @@ impl OnlineJudge for AtCoder {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
-        let csrf_token = match Self::get_csrf(&resp) {
+        let csrf_token = match Utility::get_csrf(&resp) {
             Some(token) => token,
             None => {
                 return Err(String::from("Failed to get csrf token."));
@@ -98,73 +100,8 @@ impl OnlineJudge for AtCoder {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
-        let soup = Soup::new(&resp);
-        let mut inputs_ja = vec![];
-        let mut outputs_ja = vec![];
-        let mut inputs_en = vec![];
-        let mut outputs_en = vec![];
-
-        for h3 in soup.tag("h3").find_all() {
-            let text = h3.text();
-            if text.contains("入力例") {
-                let section = match h3.parent() {
-                    Some(section) => section,
-                    None => continue,
-                };
-
-                let pre = match section.tag("pre").find() {
-                    Some(pre) => pre,
-                    None => continue,
-                };
-                inputs_ja.push(pre.text());
-            } else if text.contains("出力例") {
-                let section = match h3.parent() {
-                    Some(section) => section,
-                    None => continue,
-                };
-
-                let pre = match section.tag("pre").find() {
-                    Some(pre) => pre,
-                    None => continue,
-                };
-                outputs_ja.push(pre.text());
-            } else if text.contains("Sample Input") {
-                let section = match h3.parent() {
-                    Some(section) => section,
-                    None => continue,
-                };
-                let pre = match section.tag("pre").find() {
-                    Some(pre) => pre,
-                    None => continue,
-                };
-                inputs_en.push(pre.text());
-            } else if text.contains("Sample Output") {
-                let section = match h3.parent() {
-                    Some(section) => section,
-                    None => continue,
-                };
-                let pre = match section.tag("pre").find() {
-                    Some(pre) => pre,
-                    None => continue,
-                };
-                outputs_en.push(pre.text());
-            }
-        }
-        let mut sample_vec = Vec::new();
-        if !inputs_en.is_empty() && inputs_en.len() == outputs_en.len() {
-            for i in 0..inputs_en.len() {
-                sample_vec.push([inputs_en[i].clone(), outputs_en[i].clone()]);
-            }
-        } else if !inputs_ja.is_empty() && inputs_ja.len() == outputs_ja.len() {
-            for i in 0..inputs_ja.len() {
-                sample_vec.push([inputs_ja[i].clone(), outputs_ja[i].clone()]);
-            }
-        } else {
-            return Err(String::from("Failed to get test cases."));
-        }
-        return Ok(sample_vec);
+        return HtmlParser::parse_test_cases(&resp);
     }
-
     fn retrive_result(
         &mut self,
         problem_identifier: &str,
@@ -180,40 +117,7 @@ impl OnlineJudge for AtCoder {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
-        let soup = Soup::new(&resp);
-        let table = match soup.tag("tbody").find() {
-            Some(table) => table,
-            None => return Err(String::from("Failed to find tbody.")),
-        };
-        let trs = table.tag("tr").find_all().collect::<Vec<_>>();
-        if trs.len() != 9 && trs.len() != 7 {
-            return Err(String::from("Failed to find trs."));
-        }
-
-        let status = match trs[6].tag("td").find() {
-            Some(td) => td.text(),
-            None => return Err(String::from("Failed to find status.")),
-        };
-        let mut execute_time = String::new();
-        let mut execute_memory = String::new();
-        if trs.len() == 9 {
-            execute_time = match trs[7].tag("td").find() {
-                Some(td) => td.text(),
-                None => return Err(String::from("Failed to find execute time.")),
-            };
-            execute_memory = match trs[8].tag("td").find() {
-                Some(td) => td.text(),
-                None => return Err(String::from("Failed to find execute memory.")),
-            };
-        }
-        let mut submission_info = SubmissionInfo::new();
-        submission_info.submission_id = String::from(submission_id);
-        submission_info.identifier = String::from(problem_identifier);
-        submission_info.verdict_info = status;
-        submission_info.execute_time = execute_time;
-        submission_info.execute_memory = execute_memory;
-        submission_info.verdict = Self::parse_verdict_info(&submission_info.verdict_info);
-        return Ok(submission_info);
+        return HtmlParser::parse_submission_page(problem_identifier, submission_id, &resp);
     }
 
     fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<String>, String> {
@@ -222,24 +126,7 @@ impl OnlineJudge for AtCoder {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
-        let soup = Soup::new(&resp);
-        let tbody = match soup.tag("tbody").find() {
-            Some(tbody) => tbody,
-            None => {
-                return Err(String::from("Failed to find tbody."));
-            }
-        };
-        let trs = tbody.tag("tr").find_all();
-        let mut problems = Vec::new();
-        for tr in trs {
-            let tds = tr.tag("td").find_all().collect::<Vec<_>>();
-            if tds.len() != 5 {
-                continue;
-            }
-            let problem_key = tds[0].text().to_lowercase();
-            problems.push(format!("{}_{}", contest_identifier, problem_key));
-        }
-        return Ok(problems);
+        return HtmlParser::parse_problem_list(contest_identifier, &resp);
     }
 
     fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
@@ -248,56 +135,7 @@ impl OnlineJudge for AtCoder {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
-        let soup = Soup::new(&resp);
-        let title = match soup.tag("h1").attr("class", "text-center").find() {
-            Some(title) => title.text(),
-            None => return Err(String::from("Failed to find title.")),
-        };
-        let contest_duration = match soup.tag("small").find() {
-            Some(contest_duration) => contest_duration,
-            None => return Err(String::from("Failed to find contest duration.")),
-        };
-        let contest_duration_nodes = contest_duration.tag("a").find_all().collect::<Vec<_>>();
-        if contest_duration_nodes.len() != 2 {
-            return Err(String::from("Failed to find contest duration nodes."));
-        }
-        let start_duration_node = &contest_duration_nodes[0];
-        let end_duration_node = &contest_duration_nodes[1];
-        let start_duration_href = match start_duration_node.get("href") {
-            Some(start_duration_href) => start_duration_href,
-            None => {
-                return Err(String::from("Failed to find start duration href."));
-            }
-        };
-        let end_duration_href = match end_duration_node.get("href") {
-            Some(end_duration_href) => end_duration_href,
-            None => {
-                return Err(String::from("Failed to find end duration href."));
-            }
-        };
-        let start_time = match Self::get_datetime_from_href(&start_duration_href) {
-            Ok(start_time) => start_time,
-            Err(info) => return Err(info),
-        };
-        let end_time = match Self::get_datetime_from_href(&end_duration_href) {
-            Ok(end_time) => end_time,
-            Err(info) => return Err(info),
-        };
-        let mut contest = Contest {
-            identifier: String::from(contest_identifier),
-            title: title,
-            start_time: start_time,
-            end_time: end_time,
-            status: NotStarted,
-        };
-        if start_time > Utc::now() {
-            contest.status = NotStarted;
-        } else if end_time >= Utc::now() {
-            contest.status = Running;
-        } else {
-            contest.status = Ended;
-        }
-        return Ok(contest);
+        return HtmlParser::parse_contest(contest_identifier, &resp);
     }
 }
 impl AtCoder {
@@ -308,311 +146,4 @@ impl AtCoder {
             host: String::from("https://atcoder.jp"),
         };
     }
-    pub fn get_datetime_from_href(href: &str) -> Result<DateTime<Utc>, String> {
-        let re = match regex::Regex::new(r#"iso=([\d]+T[\d]+)"#) {
-            Ok(re) => re,
-            Err(_) => return Err(String::from("Failed to create regex.")),
-        };
-        let caps = match re.captures(&href) {
-            Some(caps) => caps,
-            None => {
-                return Err(String::from("Failed to find start time caps."));
-            }
-        };
-        let datetime_str = match caps.get(1) {
-            Some(datetime_str) => datetime_str.as_str(),
-            None => {
-                return Err(String::from("Failed to find time."));
-            }
-        };
-        let naive_time = match NaiveTime::parse_from_str(datetime_str, "%Y%m%dT%H%M") {
-            Ok(naive_time) => naive_time,
-            Err(info) => {
-                return Err(format!("Failed to parse time, {}", info));
-            }
-        };
-        let naive_date = match NaiveDate::parse_from_str(datetime_str, "%Y%m%dT%H%M") {
-            Ok(naive_date) => naive_date,
-            Err(info) => {
-                return Err(format!("Failed to parse time, {}", info));
-            }
-        };
-        let tz_offset = match FixedOffset::east_opt(9 * 3600) {
-            Some(tz_offset) => tz_offset,
-            None => {
-                return Err(String::from("Failed to get timezone offset."));
-            }
-        };
-        let naive_dt = naive_date.and_time(naive_time);
-        let dt_with_tz = tz_offset.from_local_datetime(&naive_dt).unwrap();
-        let parsed_time = Utc.from_utc_datetime(&dt_with_tz.naive_utc());
-        return Ok(parsed_time);
-    }
-    pub fn get_csrf(resp: &str) -> Option<String> {
-        let re = match regex::Regex::new(r#"var csrfToken = "([\S]+)""#) {
-            Ok(re) => re,
-            Err(_) => return None,
-        };
-        let caps = match re.captures(resp) {
-            Some(caps) => caps,
-            None => return None,
-        };
-        return Some(String::from(&caps[1]));
-    }
-    pub fn get_recent_submission_id(resp: &str) -> Result<String, String> {
-        let soup = Soup::new(&resp);
-        for ele in soup.tag("td").attr("class", "submission-score").find_all() {
-            match ele.get("data-id") {
-                Some(id) => return Ok(String::from(id)),
-                None => continue,
-            }
-        }
-        return Err(String::from("Failed to get recent submit id."));
-    }
-    pub fn parse_verdict_info(verdict_info: &str) -> Verdict {
-        if verdict_info == "Judging" {
-            return Verdict::Waiting;
-        }
-        return Verdict::Resulted;
-    }
-}
-
-#[test]
-#[ignore = "reason: need login"]
-fn test_login() {
-    dotenv::dotenv().ok();
-    let username = match dotenv::var("ATCODER_USERNAME") {
-        Ok(username) => username,
-        Err(info) => {
-            println!("Failed to get username, {}", info);
-            return;
-        }
-    };
-    let password = match dotenv::var("ATCODER_PASSWORD") {
-        Ok(password) => password,
-        Err(info) => {
-            println!("Failed to get password, {}", info);
-            return;
-        }
-    };
-    let mut atc = AtCoder::new("");
-    let _ = match atc.login(&username, &password) {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to login, {}", info);
-            return;
-        }
-    };
-}
-
-#[test]
-#[ignore = "reason: need login"]
-fn test_get_problems() {
-    dotenv::dotenv().ok();
-    let username = match dotenv::var("ATCODER_USERNAME") {
-        Ok(username) => username,
-        Err(info) => {
-            println!("Failed to get username, {}", info);
-            return;
-        }
-    };
-    let password = match dotenv::var("ATCODER_PASSWORD") {
-        Ok(password) => password,
-        Err(info) => {
-            println!("Failed to get password, {}", info);
-            return;
-        }
-    };
-    let mut atc = AtCoder::new("");
-    let _ = match atc.login(&username, &password) {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to login, {}", info);
-            return;
-        }
-    };
-    match atc.get_problems("abc319") {
-        Ok(problems) => {
-            println!("{:?}", problems);
-        }
-        Err(info) => {
-            println!("Failed to get problems, {}", info)
-        }
-    }
-}
-
-#[test]
-#[ignore = "reason: need login"]
-fn test_get_test_cases() {
-    dotenv::dotenv().ok();
-    let username = match dotenv::var("ATCODER_USERNAME") {
-        Ok(username) => username,
-        Err(info) => {
-            println!("Failed to get username, {}", info);
-            return;
-        }
-    };
-    let password = match dotenv::var("ATCODER_PASSWORD") {
-        Ok(password) => password,
-        Err(info) => {
-            println!("Failed to get password, {}", info);
-            return;
-        }
-    };
-    let mut atc = AtCoder::new("");
-    let _ = match atc.login(&username, &password) {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to login, {}", info);
-            return;
-        }
-    };
-    match atc.get_test_cases("abc165_c") {
-        Ok(test_cases) => {
-            println!("{:?}", test_cases);
-        }
-        Err(info) => {
-            println!("Failed to get test cases, {}", info);
-        }
-    }
-}
-
-#[test]
-#[ignore = "reason: need login"]
-fn test_submit() {
-    dotenv::dotenv().ok();
-    let username = match dotenv::var("ATCODER_USERNAME") {
-        Ok(username) => username,
-        Err(info) => {
-            println!("Failed to get username, {}", info);
-            return;
-        }
-    };
-    let password = match dotenv::var("ATCODER_PASSWORD") {
-        Ok(password) => password,
-        Err(info) => {
-            println!("Failed to get password, {}", info);
-            return;
-        }
-    };
-    let mut atc = AtCoder::new("");
-    let _ = match atc.login(&username, &password) {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to login, {}", info);
-            return;
-        }
-    };
-    let code = r#"
-#include <iostream>
-using namespace std;
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b << endl;
-    return 0;
-}
-    "#;
-    let resp = match atc.submit("arc165_b", code, "5001") {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to submit, {}", info);
-            return;
-        }
-    };
-    HttpClient::debug_save(&resp, ".html");
-}
-
-#[test]
-fn test_parse_recent_submission_id() {
-    let resp = match std::fs::read_to_string("assets/atcoder/submitted.html") {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to read file, {}", info);
-            return;
-        }
-    };
-    let id = match AtCoder::get_recent_submission_id(&resp) {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to get recent submission id, {}", info);
-            return;
-        }
-    };
-    println!("{}", id);
-}
-
-#[test]
-#[ignore = "reason: need login"]
-fn test_retrieve_result() {
-    dotenv::dotenv().ok();
-    let username = match dotenv::var("ATCODER_USERNAME") {
-        Ok(username) => username,
-        Err(info) => {
-            println!("Failed to get username, {}", info);
-            return;
-        }
-    };
-    let password = match dotenv::var("ATCODER_PASSWORD") {
-        Ok(password) => password,
-        Err(info) => {
-            println!("Failed to get password, {}", info);
-            return;
-        }
-    };
-    let mut atc = AtCoder::new("");
-    let _ = match atc.login(&username, &password) {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to login, {}", info);
-            return;
-        }
-    };
-    let _ = match atc.retrive_result("arc165_b", "46003634") {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to retrieve result, {}", info);
-            return;
-        }
-    };
-}
-
-#[test]
-#[ignore = "reason: need login"]
-fn test_get_contest() {
-    dotenv::dotenv().ok();
-    let username = match dotenv::var("ATCODER_USERNAME") {
-        Ok(username) => username,
-        Err(info) => {
-            println!("Failed to get username, {}", info);
-            return;
-        }
-    };
-    let password = match dotenv::var("ATCODER_PASSWORD") {
-        Ok(password) => password,
-        Err(info) => {
-            println!("Failed to get password, {}", info);
-            return;
-        }
-    };
-    let mut atc = AtCoder::new("");
-    let _ = match atc.login(&username, &password) {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to login, {}", info);
-            return;
-        }
-    };
-    let resp = match atc.get_contest("abc322") {
-        Ok(resp) => resp,
-        Err(info) => {
-            println!("Failed to get contest, {}", info);
-            return;
-        }
-    };
-    let local_start_time = resp.start_time.with_timezone(&chrono::Local);
-    let local_end_time = resp.end_time.with_timezone(&chrono::Local);
-    println!("{}, {}", local_start_time, local_end_time);
-
-    println!("{:?}", resp)
 }

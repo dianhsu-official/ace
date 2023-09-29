@@ -35,5 +35,4 @@ scraper = "0.17.1"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_derive = "1.0.188"
 serde_yaml = "0.9.25"
-soup = "0.5.1"
 sqlite = "0.31.1"

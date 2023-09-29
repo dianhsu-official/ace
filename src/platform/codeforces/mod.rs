@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 mod builder;
 mod config;
+mod parser;
+mod utility;
 use crate::library::OnlineJudge;
 use crate::misc::http_client::HttpClient;
 use crate::model::Contest;
-use crate::model::ContestStatus::{Ended, NotStarted, Running};
 use crate::model::SubmissionInfo;
-use crate::model::Verdict;
 use builder::UrlBuilder;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
-use chrono::{DateTime, Duration, TimeZone, Utc};
 use regex::Regex;
-use soup::prelude::*;
-use soup::Soup;
+
+use self::parser::HtmlParser;
+use self::utility::Utility;
 pub struct Codeforces {
     pub client: HttpClient,
 }
@@ -50,14 +50,14 @@ impl OnlineJudge for Codeforces {
             }
         };
         let mut params: HashMap<&str, &str> = HashMap::new();
-        let csrf_token = match Self::get_csrf(&submit_page) {
+        let csrf_token = match Utility::get_csrf(&submit_page) {
             Ok(csrf_token) => csrf_token,
             Err(info) => {
                 return Err(String::from("Submit failed, ") + info.as_str());
             }
         };
-        let ftaa = Self::get_ftaa();
-        let bfaa = Self::get_bfaa();
+        let ftaa = Utility::get_ftaa();
+        let bfaa = Utility::get_bfaa();
         params.insert("csrf_token", &csrf_token);
         params.insert("ftaa", &ftaa);
         params.insert("bfaa", &bfaa);
@@ -79,10 +79,7 @@ impl OnlineJudge for Codeforces {
                 "Submit failed, you have submitted exactly the same code before.",
             ));
         }
-        return match Self::parse_recent_submit_id(&resp) {
-            Ok(submit_id) => Ok(submit_id),
-            Err(info) => Err(info),
-        };
+        return HtmlParser::parse_recent_submission(&resp);
     }
 
     /// Check if the user is logged in.
@@ -108,14 +105,14 @@ impl OnlineJudge for Codeforces {
             }
         };
         let mut params: HashMap<&str, &str> = HashMap::new();
-        let csrf_token = match Self::get_csrf(&login_page) {
+        let csrf_token = match Utility::get_csrf(&login_page) {
             Ok(csrf_token) => csrf_token,
             Err(info) => {
                 return Err(String::from("Login failed, ") + info.as_str());
             }
         };
-        let ftaa = Self::get_ftaa();
-        let bfaa = Self::get_bfaa();
+        let ftaa = Utility::get_ftaa();
+        let bfaa = Utility::get_bfaa();
 
         params.insert("csrf_token", &csrf_token);
         params.insert("action", "enter");
@@ -150,12 +147,7 @@ impl OnlineJudge for Codeforces {
                 return Err(String::from("Get problem page failed, ") + err.as_str());
             }
         };
-        return match Self::parse_test_cases(&resp) {
-            Ok(test_cases) => Ok(test_cases),
-            Err(info) => {
-                return Err(String::from("Parse test cases failed, ") + info.as_str());
-            }
-        };
+        return HtmlParser::parse_test_cases(&resp);
     }
 
     fn retrive_result(
@@ -176,25 +168,7 @@ impl OnlineJudge for Codeforces {
                 return Err(info);
             }
         };
-        let soup = Soup::new(&resp);
-        let mut submission_info = SubmissionInfo::new();
-        let table_node = match soup.tag("table").find() {
-            Some(table_node) => table_node,
-            None => {
-                return Err(String::from("Parse submission info failed."));
-            }
-        };
-        let vec = table_node.tag("td").find_all().collect::<Vec<_>>();
-        if vec.len() != 10 {
-            return Err(String::from("Parse submission info failed."));
-        }
-        submission_info.submission_id = submission_id.to_string();
-        submission_info.identifier = format!("{}{}", contest_id, problem_id);
-        submission_info.verdict_info = vec[4].text().trim().to_string();
-        submission_info.verdict = Codeforces::parse_verdict(&submission_info.verdict_info);
-        submission_info.execute_time = vec[5].text().trim().to_string();
-        submission_info.execute_memory = vec[6].text().trim().to_string();
-        return Ok(submission_info);
+        return HtmlParser::parse_submission_page(submission_id, contest_id, problem_id, &resp);
     }
 
     fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<String>, String> {
@@ -205,28 +179,7 @@ impl OnlineJudge for Codeforces {
                 return Err(info);
             }
         };
-
-        let soup = Soup::new(&resp);
-        let table = match soup.tag("table").attr("class", "problems").find() {
-            Some(table) => table,
-            None => {
-                return Err(String::from("Parse problem list failed."));
-            }
-        };
-        let trs = table.tag("tr").find_all();
-        let mut problems = Vec::new();
-        for tr in trs {
-            let tds = tr.tag("td").find_all().collect::<Vec<_>>();
-            if tds.len() != 4 {
-                continue;
-            }
-            let problem_key = tds[0].text();
-            if problem_key == "#" {
-                continue;
-            }
-            problems.push(format!("{}_{}", contest_identifier, problem_key.trim()));
-        }
-        return Ok(problems);
+        return HtmlParser::parse_problem_list(contest_identifier, &resp);
     }
 
     fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
@@ -237,68 +190,7 @@ impl OnlineJudge for Codeforces {
                 return Err(info);
             }
         };
-        let soup = Soup::new(&resp);
-        let tr = match soup
-            .tag("tr")
-            .attr("data-contestid", contest_identifier)
-            .find()
-        {
-            Some(tr) => tr,
-            None => {
-                return Err(String::from("Parse contest failed."));
-            }
-        };
-        let tds = tr.tag("td").find_all().collect::<Vec<_>>();
-        if tds.len() != 6 {
-            return Err(String::from("Parse contest failed."));
-        }
-        let mut title = String::from("");
-        for ele in tds[0].children() {
-            if ele.is_text() {
-                title = ele.text();
-                break;
-            }
-        }
-        let start_time_archor = match tds[2].tag("a").find() {
-            Some(start_time_archor) => start_time_archor,
-            None => {
-                return Err(String::from("Parse contest failed."));
-            }
-        };
-        let start_time_href = match start_time_archor.get("href") {
-            Some(start_time_href) => start_time_href,
-            None => {
-                return Err(String::from("Parse contest failed."));
-            }
-        };
-        let duration = tds[3].text().trim().to_string();
-        let start_time = match Self::get_start_time(&start_time_href) {
-            Ok(start_time) => start_time,
-            Err(info) => {
-                return Err(info);
-            }
-        };
-        let end_time = match Self::get_end_time(start_time, &duration) {
-            Ok(end_time) => end_time,
-            Err(info) => {
-                return Err(info);
-            }
-        };
-        let mut contest = Contest {
-            identifier: contest_identifier.to_string(),
-            title: title.trim().to_string(),
-            start_time,
-            end_time,
-            status: NotStarted,
-        };
-        if start_time > Utc::now() {
-            contest.status = NotStarted;
-        } else if Utc::now() <= end_time {
-            contest.status = Running;
-        } else {
-            contest.status = Ended;
-        }
-        return Ok(contest);
+        return HtmlParser::parse_contest(contest_identifier, &resp);
     }
 }
 
@@ -309,160 +201,6 @@ impl Codeforces {
         Self {
             client: HttpClient::new(cookies, &endpoint),
         }
-    }
-    fn get_end_time(start_time: DateTime<Utc>, duration: &str) -> Result<DateTime<Utc>, String> {
-        let time_vec = duration.split(":").collect::<Vec<_>>();
-        let mut end_time = start_time;
-        if time_vec.len() == 2 {
-            let hour = match time_vec[0].parse::<i64>() {
-                Ok(hour) => hour,
-                Err(_) => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-            let min = match time_vec[1].parse::<i64>() {
-                Ok(min) => min,
-                Err(_) => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-            end_time = match end_time.checked_add_signed(Duration::hours(hour)) {
-                Some(end_time) => end_time,
-                None => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-            end_time = match end_time.checked_add_signed(Duration::minutes(min)) {
-                Some(end_time) => end_time,
-                None => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-        } else if time_vec.len() == 3 {
-            let day = match time_vec[0].parse::<i64>() {
-                Ok(day) => day,
-                Err(_) => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-            let hour = match time_vec[1].parse::<i64>() {
-                Ok(hour) => hour,
-                Err(_) => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-            let min = match time_vec[2].parse::<i64>() {
-                Ok(min) => min,
-                Err(_) => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-            end_time = match end_time.checked_add_signed(Duration::days(day)) {
-                Some(end_time) => end_time,
-                None => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-            end_time = match end_time.checked_add_signed(Duration::hours(hour)) {
-                Some(end_time) => end_time,
-                None => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-            end_time = match end_time.checked_add_signed(Duration::minutes(min)) {
-                Some(end_time) => end_time,
-                None => {
-                    return Err(String::from("Parse end time failed."));
-                }
-            };
-        } else {
-            return Err(String::from("Parse end time failed."));
-        }
-        return Ok(end_time);
-    }
-    fn get_start_time(start_time_href: &str) -> Result<DateTime<Utc>, String> {
-        let re = match Regex::new(
-            r#"\?day=(\d+)&month=(\d+)&year=(\d+)&hour=(\d+)&min=(\d+)&sec=(\d+)&"#,
-        ) {
-            Ok(re) => re,
-            Err(_) => {
-                return Err(String::from("Create regex failed."));
-            }
-        };
-        let caps = match re.captures(start_time_href) {
-            Some(caps) => caps,
-            None => {
-                return Err(String::from("Parse start time failed."));
-            }
-        };
-        let day = match caps[1].parse::<u32>() {
-            Ok(day) => day,
-            Err(_) => {
-                return Err(String::from("Parse start time failed."));
-            }
-        };
-        let month = match caps[2].parse::<u32>() {
-            Ok(month) => month,
-            Err(_) => {
-                return Err(String::from("Parse start time failed."));
-            }
-        };
-        let year = match caps[3].parse::<i32>() {
-            Ok(year) => year,
-            Err(_) => {
-                return Err(String::from("Parse start time failed."));
-            }
-        };
-        let hour = match caps[4].parse::<u32>() {
-            Ok(hour) => hour,
-            Err(_) => {
-                return Err(String::from("Parse start time failed."));
-            }
-        };
-        let min = match caps[5].parse::<u32>() {
-            Ok(min) => min,
-            Err(_) => {
-                return Err(String::from("Parse start time failed."));
-            }
-        };
-        let sec = match caps[6].parse::<u32>() {
-            Ok(sec) => sec,
-            Err(_) => {
-                return Err(String::from("Parse start time failed."));
-            }
-        };
-        let start_time = match Utc
-            .with_ymd_and_hms(year, month, day, hour, min, sec)
-            .single()
-        {
-            Some(parsed_time) => parsed_time,
-            None => {
-                return Err(String::from("Parse start time failed."));
-            }
-        };
-        return Ok(start_time);
-    }
-    fn get_bfaa() -> String {
-        String::from("f1b3f18c715565b589b7823cda7448ce")
-    }
-    fn get_ftaa() -> String {
-        random_str::get_string(18, true, false, true, false)
-    }
-
-    fn get_csrf(body: &str) -> Result<String, String> {
-        let re = match Regex::new(r#"csrf='(.+?)'"#) {
-            Ok(re) => re,
-            Err(_) => {
-                return Err(String::from("Create regex failed."));
-            }
-        };
-        let csrf = match re.captures(body) {
-            Some(caps) => caps[1].to_string(),
-            None => {
-                return Err(String::from("Parse csrf failed."));
-            }
-        };
-        return Ok(csrf);
     }
     fn to_hex_bytes(input: &str) -> [u8; 16] {
         let mut arr = [0; 32];
@@ -497,290 +235,10 @@ impl Codeforces {
         return hex::encode(blk);
     }
 
-    fn parse_verdict(verdict_info: &str) -> Verdict {
-        if verdict_info.contains("Running") || verdict_info.contains("queue") {
-            return Verdict::Waiting;
-        } else {
-            return Verdict::Resulted;
-        }
-    }
     /// Check if the contest is a regular contest.
     /// distinguish regular contest and gym contest.
     #[allow(unused)]
     fn is_regular_contest(identifier: &str) -> bool {
         return false;
     }
-    #[allow(unused)]
-    fn parse_recent_submit_id(resp: &str) -> Result<String, String> {
-        let re = match Regex::new(r#"submissionId="(\d+)"#) {
-            Ok(re) => re,
-            Err(_) => return Err(String::from("Create regex failed.")),
-        };
-        let caps = match re.captures(resp) {
-            Some(caps) => caps,
-            None => return Err(String::from("Can't find submission id.")),
-        };
-        return Ok(caps[1].to_string());
-    }
-    #[allow(unused)]
-    fn parse_test_cases(resp: &str) -> Result<Vec<[String; 2]>, String> {
-        let soup = Soup::new(resp);
-        let mut res = Vec::new();
-        soup.tag("div")
-            .attr("class", "sample-test")
-            .find_all()
-            .enumerate()
-            .for_each(|(i, node)| {
-                let mut input = String::new();
-                let mut output = String::new();
-                let input_div_node = match node.tag("div").attr("class", "input").find() {
-                    Some(input_div_node) => input_div_node,
-                    None => return,
-                };
-                let input_pre_node = match input_div_node.tag("pre").find() {
-                    Some(input_pre_node) => input_pre_node,
-                    None => return,
-                };
-                input_pre_node
-                    .tag("div")
-                    .find_all()
-                    .enumerate()
-                    .for_each(|(i, node)| {
-                        if i != 0 {
-                            input.push('\n');
-                        }
-                        input.push_str(node.text().as_str());
-                    });
-                if input.is_empty() {
-                    input = input_pre_node.text();
-                }
-                let output_div_node = match node.tag("div").attr("class", "output").find() {
-                    Some(output_div_node) => output_div_node,
-                    None => return,
-                };
-                let output_pre_node = match output_div_node.tag("pre").find() {
-                    Some(output_pre_node) => output_pre_node,
-                    None => return,
-                };
-                output_pre_node
-                    .tag("div")
-                    .find_all()
-                    .enumerate()
-                    .for_each(|(i, node)| {
-                        if i != 0 {
-                            output.push('\n');
-                        }
-                        output.push_str(node.text().as_str());
-                    });
-                if output.is_empty() {
-                    output = output_pre_node.text();
-                }
-                while input.ends_with("\n") {
-                    input.pop();
-                }
-                while output.ends_with("\n") {
-                    output.pop();
-                }
-                res.push([input, output]);
-            });
-        return Ok(res);
-    }
-}
-#[test]
-#[ignore = "local test"]
-fn test_parse_test_cases() {
-    let content = match std::fs::read_to_string("assets/codeforces/problem_1873A.html") {
-        Ok(content) => content,
-        Err(info) => {
-            panic!("{}", info);
-        }
-    };
-    let _ = Codeforces::parse_test_cases(&content);
-}
-
-#[test]
-#[ignore = "local test"]
-fn test_parse_recent_submit_id() {
-    let content = match std::fs::read_to_string("assets/codeforces/submit_resp.html") {
-        Ok(content) => content,
-        Err(info) => {
-            panic!("{}", info);
-        }
-    };
-    let res = Codeforces::parse_recent_submit_id(&content);
-    assert_eq!(res.is_ok(), true, "{}", res.err().unwrap());
-    assert_eq!(res.unwrap(), "224642350");
-}
-
-#[test]
-#[ignore = "local test"]
-fn test_submit_code() {
-    dotenv::dotenv().ok();
-    let mut cf = Codeforces::new("");
-    let username = match dotenv::var("CODEFORCES_USERNAME") {
-        Ok(username) => username,
-        Err(_) => {
-            panic!(
-                "Please set CODEFORCES_USERNAME in .env file or set it in the environment variable"
-            );
-        }
-    };
-    let password = match dotenv::var("CODEFORCES_PASSWORD") {
-        Ok(password) => password,
-        Err(_) => {
-            panic!(
-                "Please set CODEFORCES_PASSWORD in .env file or set it in the environment variable"
-            );
-        }
-    };
-    let login_res = cf.login(&username, &password);
-    assert_eq!(login_res.is_ok(), true, "{}", login_res.err().unwrap());
-    let is_login_res = cf.is_login();
-    assert_eq!(
-        is_login_res.is_ok(),
-        true,
-        "{}",
-        is_login_res.err().unwrap()
-    );
-    let code = r#"
-// 1
-#include <iostream>
-using namespace std;
-int main() {
-    int w;
-    cin >> w;
-    if (w % 2 == 0 && w > 2) {
-        cout << "YES" << endl;
-    } else {
-        cout << "NO" << endl;
-    }
-}
-    "#;
-    let submit_res = cf.submit("4_A", code, "73");
-    assert_eq!(submit_res.is_ok(), true, "{}", submit_res.err().unwrap());
-    print!("{}", submit_res.unwrap());
-}
-#[test]
-#[ignore = "local test"]
-fn test_login() {
-    dotenv::dotenv().ok();
-    let mut cf = Codeforces::new("");
-    let username = match dotenv::var("CODEFORCES_USERNAME") {
-        Ok(username) => username,
-        Err(_) => {
-            panic!(
-                "Please set CODEFORCES_USERNAME in .env file or set it in the environment variable"
-            );
-        }
-    };
-    let password = match dotenv::var("CODEFORCES_PASSWORD") {
-        Ok(password) => password,
-        Err(_) => {
-            panic!(
-                "Please set CODEFORCES_PASSWORD in .env file or set it in the environment variable"
-            );
-        }
-    };
-    match cf.login(&username, &password) {
-        Ok(_) => {}
-        Err(info) => {
-            panic!("{}", info);
-        }
-    };
-    match cf.is_login() {
-        Ok(_) => {
-            println!("Login successfully.");
-        }
-        Err(info) => {
-            panic!("{}", info);
-        }
-    };
-}
-
-#[test]
-#[ignore = "local test"]
-fn test_get_problems() {
-    dotenv::dotenv().ok();
-    let mut cf = Codeforces::new("");
-    let username = match dotenv::var("CODEFORCES_USERNAME") {
-        Ok(username) => username,
-        Err(_) => {
-            panic!(
-                "Please set CODEFORCES_USERNAME in .env file or set it in the environment variable"
-            );
-        }
-    };
-    let password = match dotenv::var("CODEFORCES_PASSWORD") {
-        Ok(password) => password,
-        Err(_) => {
-            panic!(
-                "Please set CODEFORCES_PASSWORD in .env file or set it in the environment variable"
-            );
-        }
-    };
-    match cf.login(&username, &password) {
-        Ok(_) => {}
-        Err(info) => {
-            panic!("{}", info);
-        }
-    };
-    match cf.is_login() {
-        Ok(_) => {
-            println!("Login successfully.");
-        }
-        Err(info) => {
-            panic!("{}", info);
-        }
-    };
-    match cf.get_problems("1878") {
-        Ok(problems) => {
-            println!("{:?}", problems);
-        }
-        Err(info) => {
-            panic!("{}", info);
-        }
-    }
-}
-#[test]
-fn test_get_verdict() {
-    let mut cf = Codeforces::new("");
-    match cf.retrive_result("1872_A", "223223698") {
-        Ok(submission_info) => {
-            println!("{:?}", submission_info);
-        }
-        Err(info) => {
-            panic!("{}", info);
-        }
-    }
-}
-
-#[test]
-#[ignore = "local test"]
-fn test_get_contest() {
-    let mut cf = Codeforces::new("");
-    match cf.get_contest("1881") {
-        Ok(contest) => {
-            println!("{:?}", contest);
-        }
-        Err(info) => {
-            panic!("{}", info);
-        }
-    }
-}
-
-#[test]
-fn test_get_csrf_token() {
-    let content = match std::fs::read_to_string("assets/codeforces/login_page.html") {
-        Ok(content) => content,
-        Err(info) => {
-            panic!("{}", info);
-        }
-    };
-    let csrf = match Codeforces::get_csrf(&content) {
-        Ok(csrf) => csrf,
-        Err(info) => {
-            panic!("{}", info);
-        }
-    };
-    println!("{}", csrf);
 }
