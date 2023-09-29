@@ -58,15 +58,21 @@ jobs:
         default: true
         override: true
 
+    - if: ${{ matrix.target == 'aarch64-pc-windows-msvc' }}
+      run: |
+        echo "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\Llvm\x64\bin" >> $GITHUB_PATH
+        echo "RUSTFLAGS=-C target-feature=+crt-static" >> $GITHUB_ENV
+      shell: bash
+      
     - name: Build ${{ matrix.target }}
       timeout-minutes: 120
-      shell: powershell
+      shell: bash
       run: cargo build --target ${{ matrix.target }} 
 
     - name: Test ${{ matrix.target }}
       if: matrix.target == 'x86_64-pc-windows-msvc'
       timeout-minutes: 120
-      shell: powershell
+      shell: bash
       run: cargo test --target ${{ matrix.target }} 
 
   build-linux:
