@@ -28,7 +28,6 @@ impl HttpClient {
             endpoint: endpoint.to_string(),
         }
     }
-    #[allow(unused)]
     pub fn save_cookies(&mut self) -> String {
         let mut cookies = String::new();
         if let Some(cookie) = self
@@ -137,9 +136,9 @@ impl HttpClient {
 
 #[test]
 fn test_client() {
-    let url = "https://codeforces.com";
+    let url = "https://atcoder.jp";
     let mut client = HttpClient::new("", url);
-    match client.get("https://codeforces.com/enter") {
+    match client.get("https://atcoder.jp") {
         Ok(resp) => {
             use std::fs::File;
             let mut file = File::create("test.html").unwrap();
