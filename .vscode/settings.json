@@ -1,3 +1,5 @@
 {
+    "css.validate": false,
+    "html.validate.scripts": false,
     "rust-analyzer.showUnlinkedFileNotification": false
 }
