@@ -4,6 +4,8 @@ use std::fs::create_dir_all;
 use std::path::Path;
 use std::process::exit;
 
+use crate::config::Platform;
+
 lazy_static! {
     pub static ref CONFIG_DB: ConfigDatabase = ConfigDatabase::new();
 }
@@ -17,7 +19,7 @@ CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY AUTOINCREMENT, name TE
 CREATE TABLE IF NOT EXISTS account (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, username TEXT, password TEXT, cookies TEXT default \"\", last_use TEXT default \"1970-01-01T00:00:00+00:00\", current INTEGER DEFAULT 0);
 ";
 impl ConfigDatabase {
-    pub fn remove_accounts(&self, platform: &str, usernames: Vec<String>) {
+    pub fn remove_accounts(&self, platform: Platform, usernames: Vec<String>) {
         let query = format!(
             "DELETE FROM account WHERE platform = ? and username in ('{}')",
             usernames.join("','")
@@ -29,7 +31,8 @@ impl ConfigDatabase {
                 return;
             }
         };
-        match stmt.bind((1, platform)) {
+        let platform_str = platform.to_string();
+        match stmt.bind((1, platform_str.as_str())) {
             Ok(_) => {}
             Err(info) => {
                 log::error!("{}", info);
@@ -73,40 +76,74 @@ impl ConfigDatabase {
     }
     /// Get the current account of the platform.
     #[allow(unused)]
-    pub fn get_accounts(&self, platform: &str) -> Vec<[String; 5]> {
-        let query = format!(
-            "SELECT username, password, cookies, current, last_use FROM account WHERE platform = ?"
+    pub fn get_accounts(&self, platform: Option<Platform>) -> Vec<[String; 6]> {
+        if let Some(platform_item) = platform {
+            let query = format!(
+            "SELECT username, password, cookies, current, last_use, platform FROM account WHERE platform = ?"
         );
-        let mut res = Vec::new();
-        for row in self
-            .connection
-            .prepare(query)
-            .unwrap()
-            .into_iter()
-            .bind((1, platform))
-            .unwrap()
-            .map(|row| row.unwrap())
-        {
-            let mut account = [
-                String::new(),
-                String::new(),
-                String::new(),
-                String::new(),
-                String::new(),
-            ];
-            account[0] = row.read::<&str, _>("username").to_string();
-            account[1] = row.read::<&str, _>("password").to_string();
-            account[2] = row.read::<&str, _>("cookies").to_string();
-            account[3] = row.read::<i64, _>("current").to_string();
-            account[4] = row.read::<&str, _>("last_use").to_string();
-            res.push(account);
+            let platform_str = platform_item.to_string();
+            let mut res = Vec::new();
+            for row in self
+                .connection
+                .prepare(query)
+                .unwrap()
+                .into_iter()
+                .bind((1, platform_str.as_str()))
+                .unwrap()
+                .map(|row| row.unwrap())
+            {
+                let mut account = [
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                ];
+                account[0] = row.read::<&str, _>("username").to_string();
+                account[1] = row.read::<&str, _>("password").to_string();
+                account[2] = row.read::<&str, _>("cookies").to_string();
+                account[3] = row.read::<i64, _>("current").to_string();
+                account[4] = row.read::<&str, _>("last_use").to_string();
+                account[5] = row.read::<&str, _>("platform").to_string();
+                res.push(account);
+            }
+            return res;
+        } else {
+            let query = format!(
+                "SELECT username, password, cookies, current, last_use, platform FROM account"
+            );
+            let mut res = Vec::new();
+            for row in self
+                .connection
+                .prepare(query)
+                .unwrap()
+                .into_iter()
+                .map(|row| row.unwrap())
+            {
+                let mut account = [
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                ];
+                account[0] = row.read::<&str, _>("username").to_string();
+                account[1] = row.read::<&str, _>("password").to_string();
+                account[2] = row.read::<&str, _>("cookies").to_string();
+                account[3] = row.read::<i64, _>("current").to_string();
+                account[4] = row.read::<&str, _>("last_use").to_string();
+                account[5] = row.read::<&str, _>("platform").to_string();
+                res.push(account);
+            }
+            return res;
         }
-        return res;
     }
 
     /// Check if the account exists.
     #[allow(unused)]
-    pub fn is_account_exist(&self, platform: &str, username: &str) -> Result<bool, String> {
+    pub fn is_account_exist(&self, platform: Platform, username: &str) -> Result<bool, String> {
         let query = format!("SELECT COUNT(*) FROM account WHERE platform = ? AND username = ?");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
@@ -115,7 +152,8 @@ impl ConfigDatabase {
                 return Err(info.to_string());
             }
         };
-        match stmt.bind((1, platform)) {
+        let platform_str = platform.to_string();
+        match stmt.bind((1, platform_str.as_str())) {
             Ok(_) => {}
             Err(info) => {
                 log::error!("{}", info);
@@ -154,7 +192,7 @@ impl ConfigDatabase {
     #[allow(unused)]
     pub fn add_account(
         &self,
-        platform: &str,
+        platform: Platform,
         username: &str,
         password: &str,
     ) -> Result<(), String> {
@@ -175,7 +213,8 @@ impl ConfigDatabase {
                 return Err(info.to_string());
             }
         };
-        match stmt.bind((1, platform)) {
+        let platform_str = platform.to_string();
+        match stmt.bind((1, platform_str.as_str())) {
             Ok(_) => {}
             Err(info) => {
                 log::error!("{}", info);
@@ -249,11 +288,11 @@ fn test_config_database() {
     let path_str = format!("test_{}.sqlite", rand::random::<u64>());
     let config_db_path = Path::new(&path_str);
     let config_db = ConfigDatabase::create_from_path(config_db_path);
-    let mut res = config_db.add_account("codeforces", "dianhsu", "xudian");
+    let mut res = config_db.add_account(Platform::Codeforces, "dianhsu", "xudian");
     assert_eq!(res.is_ok(), true);
-    res = config_db.add_account("codeforces", "dianhsu", "xudian");
+    res = config_db.add_account(Platform::Codeforces, "dianhsu", "xudian");
     assert_eq!(res.is_ok(), false);
-    let res = config_db.get_accounts("codeforces");
+    let res = config_db.get_accounts(Some(Platform::Codeforces));
     for account in res {
         println!("{:?}", account);
     }
