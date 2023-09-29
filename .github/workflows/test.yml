@@ -34,6 +34,7 @@ jobs:
       run: cargo build --target ${{ matrix.target }} 
 
     - name: Test ${{ matrix.target }}
+      if: matrix.target == 'x86_64-apple-darwin'
       timeout-minutes: 120
       shell: bash
       run: cargo test --target ${{ matrix.target }} 
@@ -59,14 +60,14 @@ jobs:
 
     - name: Build ${{ matrix.target }}
       timeout-minutes: 120
-      shell: bash
+      shell: powershell
       run: cargo build --target ${{ matrix.target }} 
 
     - name: Test ${{ matrix.target }}
+      if: matrix.target == 'x86_64-pc-windows-msvc'
       timeout-minutes: 120
-      shell: bash
+      shell: powershell
       run: cargo test --target ${{ matrix.target }} 
-  
 
   build-linux:
     runs-on: ubuntu-latest
@@ -88,13 +89,17 @@ jobs:
         default: true
         override: true
 
+    - name: Install cross
+      run: cargo install cross
+
     - name: Build ${{ matrix.target }}
       timeout-minutes: 120
       shell: bash
-      run: cargo build --target ${{ matrix.target }}
+      run: cross build --target ${{ matrix.target }}
 
     - name: Test ${{ matrix.target }}
+      if: matrix.target == 'x86_64-unknown-linux-gnu'
       timeout-minutes: 120
       shell: bash
-      run: cargo test --target ${{ matrix.target }}
+      run: cross test --target ${{ matrix.target }}
   
