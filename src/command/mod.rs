@@ -1,29 +1,26 @@
 mod account;
 mod config;
-use self::account::{AccountArgs, AccountCommand};
+pub mod model;
+use clap::Parser;
+
+use self::account::AccountCommand;
 use self::config::ConfigCommand;
-use clap::{Parser, Subcommand};
+use self::model::Commands;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    pub command: Commands,
 }
-#[derive(Subcommand)]
-pub enum Commands {
-    /// Manage account for ace, such as add, remove, list
-    Account(AccountArgs),
-    // Config
-    Config,
-}
-
 impl Cli {
     pub fn run() -> Result<(), String> {
         let cli = Cli::parse();
-        match cli.command {
+        let _ = match cli.command {
             Commands::Account(args) => AccountCommand::handle(args),
-            Commands::Config => ConfigCommand::handle(),
-        }
+            Commands::Config(args) => ConfigCommand::handle(args),
+        };
+
+        return Ok(());
     }
 }

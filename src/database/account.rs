@@ -1,4 +1,4 @@
-use crate::config::Platform;
+use crate::model::Platform;
 
 use super::ConfigDatabase;
 impl ConfigDatabase {

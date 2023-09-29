@@ -1,31 +1,6 @@
+use crate::model::Platform;
 use lazy_static::lazy_static;
-use serde_derive::Deserialize;
-use serde_derive::Serialize;
 use std::collections::HashMap;
-use std::fmt::Display;
-#[derive(Serialize, Deserialize)]
-pub struct CodeTemplate {
-    pub alias: String,
-    pub lang: String,
-    pub path: String,
-    pub suffix: String,
-    pub before_script: String,
-    pub script: String,
-    pub after_script: String,
-}
-#[derive(Serialize, Deserialize, Clone, Copy)]
-pub enum Platform {
-    Codeforces,
-    Atcoder,
-}
-impl Display for Platform {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Platform::Codeforces => "codeforces",
-            Platform::Atcoder => "atcoder",
-        })
-    }
-}
 lazy_static! {
     pub static ref PLATFORMS: Vec<Platform> =
         Vec::from(vec![Platform::Codeforces, Platform::Atcoder]);
@@ -38,6 +13,7 @@ lazy_static! {
         ("atcoder", Platform::Atcoder),
     ]);
 }
+#[allow(dead_code)]
 pub enum ProgramLanguage {
     C,
     Cpp,

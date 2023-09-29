@@ -1,23 +1,8 @@
-use crate::{config::PLATFORM_MAP, misc::utility::account::AccountUtility};
-use clap::{Args, Subcommand};
-#[derive(Subcommand)]
-pub enum AccountOptions {
-    Add,
-    List,
-    ChooseDefault,
-    UpdatePassword,
-    Remove,
-}
-#[derive(Args)]
-pub struct AccountArgs {
-    #[command(subcommand)]
-    pub options: AccountOptions,
-    #[arg(short, long)]
-    pub platform: Option<String>,
-}
+use super::model::{AccountArgs, AccountOptions};
+use crate::{constants::PLATFORM_MAP, misc::utility::account::AccountUtility};
 pub struct AccountCommand {}
 impl AccountCommand {
-    pub fn handle(args: AccountArgs) -> Result<(), String> {
+    pub fn handle(args: AccountArgs) -> Result<String, String> {
         let platform = args.platform;
         let real_platform = match platform {
             Some(platform) => match PLATFORM_MAP.get(platform.as_str()) {
@@ -31,24 +16,23 @@ impl AccountCommand {
         match args.options {
             AccountOptions::Add => match AccountUtility::create_account(real_platform) {
                 Ok(username) => {
-                    println!("Account {} added.", username);
+                    return Ok(format!("Account {} added.", username));
                 }
                 Err(info) => {
                     return Err(info);
                 }
             },
-            AccountOptions::ChooseDefault => {
+            AccountOptions::SetDefault => {
                 let _ = match AccountUtility::choose_default_account(real_platform) {
-                    Ok(_) => {}
+                    Ok(_) => return Ok("Default account set.".to_string()),
                     Err(info) => {
                         return Err(info);
                     }
                 };
             }
-            AccountOptions::UpdatePassword => {
-                println!("Update password");
-                let _ = match AccountUtility::update_password(real_platform){
-                    Ok(_) => {}
+            AccountOptions::Update => {
+                let _ = match AccountUtility::update_password(real_platform) {
+                    Ok(_) => return Ok("Password updated.".to_string()),
                     Err(info) => {
                         return Err(info);
                     }
@@ -56,7 +40,7 @@ impl AccountCommand {
             }
             AccountOptions::List => {
                 let _ = match AccountUtility::get_account_list(real_platform) {
-                    Ok(_) => {}
+                    Ok(_) => return Ok("Account list printed.".to_string()),
                     Err(info) => {
                         return Err(info);
                     }
@@ -64,13 +48,12 @@ impl AccountCommand {
             }
             AccountOptions::Remove => {
                 let _ = match AccountUtility::remove_select_account(real_platform) {
-                    Ok(_) => {}
+                    Ok(_) => return Ok("Account removed.".to_string()),
                     Err(info) => {
                         return Err(info);
                     }
                 };
             }
         }
-        return Ok(());
     }
 }

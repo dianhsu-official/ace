@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 mod builder;
-mod config;
+mod constants;
 mod parser;
 mod utility;
-use crate::config::Platform;
-use crate::library::OnlineJudge;
 use crate::database::CONFIG_DB;
+use crate::library::OnlineJudge;
 use crate::misc::http_client::HttpClient;
 use crate::model::Contest;
+use crate::model::Platform;
 use crate::model::SubmissionInfo;
 use builder::UrlBuilder;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};

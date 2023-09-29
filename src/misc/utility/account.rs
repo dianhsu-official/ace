@@ -4,11 +4,9 @@ use chrono::DateTime;
 use inquire::{min_length, MultiSelect, Password, PasswordDisplayMode, Text};
 use prettytable::{Cell, Row, Table};
 
-use crate::{
-    config::{Platform, PLATFORMS},
-    database::CONFIG_DB,
-};
-
+use crate::constants::PLATFORMS;
+use crate::database::CONFIG_DB;
+use crate::model::Platform;
 pub struct AccountUtility {}
 impl AccountUtility {
     pub fn get_platform_from_cmd(platform_from_cmd: Option<Platform>) -> Result<Platform, String> {

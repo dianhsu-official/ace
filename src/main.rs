@@ -1,5 +1,5 @@
 mod command;
-mod config;
+mod constants;
 mod database;
 mod library;
 mod misc;

@@ -1,10 +1,10 @@
-use crate::config::Platform;
+use crate::model::Platform;
 use crate::library::OnlineJudge;
 use crate::database::CONFIG_DB;
 use crate::misc::http_client::HttpClient;
 use crate::model::{Contest, SubmissionInfo};
 mod builder;
-mod config;
+mod constants;
 mod parser;
 mod utility;
 use builder::UrlBuilder;

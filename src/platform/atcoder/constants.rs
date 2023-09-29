@@ -1,5 +1,5 @@
-use crate::config::ProgramLanguage;
-use crate::config::ProgramLanguage::*;
+use crate::constants::ProgramLanguage;
+use crate::constants::ProgramLanguage::*;
 use lazy_static::lazy_static;
 lazy_static! {
     static ref LANG: [(&'static str, &'static str, ProgramLanguage); 90] = [

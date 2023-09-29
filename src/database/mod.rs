@@ -4,7 +4,7 @@ use std::fs::create_dir_all;
 use std::path::Path;
 use std::process::exit;
 mod account;
-
+mod config;
 lazy_static! {
     pub static ref CONFIG_DB: ConfigDatabase = ConfigDatabase::new();
 }
@@ -46,43 +46,6 @@ impl ConfigDatabase {
         return Self::create_from_path(config_path);
     }
 
-    #[allow(unused)]
-    pub fn get_config(&self, name: &str) -> Vec<String> {
-        let query = format!("SELECT value FROM config WHERE name = ?");
-        let mut res = Vec::new();
-        for row in self
-            .connection
-            .prepare(query)
-            .unwrap()
-            .into_iter()
-            .bind((1, name))
-            .unwrap()
-            .map(|row| row.unwrap())
-        {
-            res.push(row.read::<&str, _>("value").to_string());
-        }
-        return res;
-    }
-    #[allow(unused)]
-    pub fn set_config(&self, name: &str, value: &str) -> bool {
-        let query = format!("INSERT OR REPLACE INTO config (name, value) VALUES (?, ?)");
-        let mut stmt = match self.connection.prepare(query) {
-            Ok(stmt) => stmt,
-            Err(_) => return false,
-        };
-        match stmt.bind((1, name)) {
-            Ok(_) => {}
-            Err(_) => return false,
-        };
-        match stmt.bind((2, value)) {
-            Ok(_) => {}
-            Err(_) => return false,
-        };
-        match stmt.next() {
-            Ok(_) => return true,
-            Err(_) => return false,
-        };
-    }
 }
 
 #[test]
@@ -90,11 +53,11 @@ fn test_config_database() {
     let path_str = format!("test_{}.sqlite", rand::random::<u64>());
     let config_db_path = Path::new(&path_str);
     let config_db = ConfigDatabase::create_from_path(config_db_path);
-    let mut res = config_db.add_account(crate::config::Platform::Codeforces, "dianhsu", "xudian");
+    let mut res = config_db.add_account(crate::model::Platform::Codeforces, "dianhsu", "xudian");
     assert_eq!(res.is_ok(), true);
-    res = config_db.add_account(crate::config::Platform::Codeforces, "dianhsu", "xudian");
+    res = config_db.add_account(crate::model::Platform::Codeforces, "dianhsu", "xudian");
     assert_eq!(res.is_ok(), false);
-    let res = config_db.get_accounts(Some(crate::config::Platform::Codeforces));
+    let res = config_db.get_accounts(Some(crate::model::Platform::Codeforces));
     for account in res {
         println!("{:?}", account);
     }

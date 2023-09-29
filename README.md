@@ -31,8 +31,8 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 | Command     | Description       | Progress |
 | ----------- | ----------------- | -------- |
 | ace account | user management   | ✅        |
-| ace config  | config management | Pending  |
+| ace config  | config management | ✅        |
+| ace parse   | get contest info  | Pending  |
 | ace submit  | submit code       | Pending  |
 | ace test    | local run test    | Pending  |
-| ace parse   | get contest info  | Pending  |
 | *ace race   | start race        | Pending  |
