@@ -75,7 +75,6 @@ impl ConfigDatabase {
         return Self::create_from_path(config_path);
     }
     /// Get the current account of the platform.
-    #[allow(unused)]
     pub fn get_accounts(&self, platform: Option<Platform>) -> Vec<[String; 6]> {
         if let Some(platform_item) = platform {
             let query = format!(
@@ -142,7 +141,6 @@ impl ConfigDatabase {
     }
 
     /// Check if the account exists.
-    #[allow(unused)]
     pub fn is_account_exist(&self, platform: Platform, username: &str) -> Result<bool, String> {
         let query = format!("SELECT COUNT(*) FROM account WHERE platform = ? AND username = ?");
         let mut stmt = match self.connection.prepare(query) {
@@ -181,15 +179,64 @@ impl ConfigDatabase {
                 return Err(info.to_string());
             }
         };
-        if (cnt > 0) {
+        if cnt > 0 {
             return Ok(true);
         } else {
             return Ok(false);
         }
     }
 
+    pub fn save_cookies(
+        &self,
+        platform: Platform,
+        username: &str,
+        cookies: &str,
+    ) -> Result<(), String> {
+        let query = format!(
+            "UPDATE account SET cookies = ?, last_use = ? WHERE platform = ? AND username = ?"
+        );
+        let mut stmt = match self.connection.prepare(query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        let platform_str = platform.to_string();
+        match stmt.bind((1, cookies)) {
+            Ok(_) => {}
+            Err(info) => {
+                log::error!("{}", info);
+                return Err(info.to_string());
+            }
+        };
+        let now = chrono::Utc::now().to_rfc3339();
+        match stmt.bind((2, now.as_str())) {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.bind((3, platform_str.as_str())) {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.bind((4, username)) {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.next() {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        return Ok(());
+    }
     /// Add an account to the database.
-    #[allow(unused)]
     pub fn add_account(
         &self,
         platform: Platform,

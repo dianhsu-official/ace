@@ -3,7 +3,9 @@ mod builder;
 mod config;
 mod parser;
 mod utility;
+use crate::config::Platform;
 use crate::library::OnlineJudge;
+use crate::misc::database::CONFIG_DB;
 use crate::misc::http_client::HttpClient;
 use crate::model::Contest;
 use crate::model::SubmissionInfo;
@@ -15,8 +17,13 @@ use self::parser::HtmlParser;
 use self::utility::Utility;
 pub struct Codeforces {
     pub client: HttpClient,
+    pub username: String,
 }
-
+impl Drop for Codeforces {
+    fn drop(&mut self) {
+        let _ = self.save_cookies();
+    }
+}
 impl OnlineJudge for Codeforces {
     /// Submit code to the platform.  
     ///
@@ -98,6 +105,7 @@ impl OnlineJudge for Codeforces {
 
     /// Login to the platform.
     fn login(&mut self, username: &str, password: &str) -> Result<String, String> {
+        self.username = String::from(username);
         let login_page = match self.client.get(&UrlBuilder::build_index_url()) {
             Ok(login_page) => login_page,
             Err(info) => {
@@ -192,6 +200,17 @@ impl OnlineJudge for Codeforces {
         };
         return HtmlParser::parse_contest(contest_identifier, &resp);
     }
+
+    fn save_cookies(&mut self) -> Result<(), String> {
+        if !self.username.is_empty() {
+            return CONFIG_DB.save_cookies(
+                Platform::Codeforces,
+                &self.username,
+                &self.client.save_cookies(),
+            );
+        }
+        return Ok(());
+    }
 }
 
 impl Codeforces {
@@ -200,6 +219,7 @@ impl Codeforces {
         let endpoint = String::from("https://codeforces.com");
         Self {
             client: HttpClient::new(cookies, &endpoint),
+            username: String::new(),
         }
     }
     fn to_hex_bytes(input: &str) -> [u8; 16] {
@@ -240,5 +260,23 @@ impl Codeforces {
     #[allow(unused)]
     fn is_regular_contest(identifier: &str) -> bool {
         return false;
+    }
+}
+
+#[test]
+#[ignore = "reason: need login"]
+fn test_login() {
+    dotenv::dotenv().ok();
+    let mut cf = Codeforces::new("");
+    let username = dotenv::var("CODEFORCES_USERNAME").unwrap();
+    let password = dotenv::var("CODEFORCES_PASSWORD").unwrap();
+    let resp = cf.login(&username, &password);
+    match resp {
+        Ok(_) => {
+            println!("Login success.");
+        }
+        Err(info) => {
+            println!("Login failed, {}", info);
+        }
     }
 }

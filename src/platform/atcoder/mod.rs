@@ -1,4 +1,6 @@
+use crate::config::Platform;
 use crate::library::OnlineJudge;
+use crate::misc::database::CONFIG_DB;
 use crate::misc::http_client::HttpClient;
 use crate::model::{Contest, SubmissionInfo};
 mod builder;
@@ -12,6 +14,12 @@ use self::utility::Utility;
 pub struct AtCoder {
     pub client: HttpClient,
     pub host: String,
+    pub username: String,
+}
+impl Drop for AtCoder {
+    fn drop(&mut self) {
+        let _ = self.save_cookies();
+    }
 }
 impl OnlineJudge for AtCoder {
     fn submit(
@@ -64,6 +72,7 @@ impl OnlineJudge for AtCoder {
     }
 
     fn login(&mut self, username: &str, password: &str) -> Result<String, String> {
+        self.username = String::from(username);
         let login_page_url = UrlBuilder::build_login_page_url();
         let resp = match self.client.get(&login_page_url) {
             Ok(resp) => resp,
@@ -137,6 +146,17 @@ impl OnlineJudge for AtCoder {
         };
         return HtmlParser::parse_contest(contest_identifier, &resp);
     }
+
+    fn save_cookies(&mut self) -> Result<(), String> {
+        if !self.username.is_empty() {
+            return CONFIG_DB.save_cookies(
+                Platform::Atcoder,
+                &self.username,
+                &self.client.save_cookies(),
+            );
+        }
+        return Ok(());
+    }
 }
 impl AtCoder {
     #[allow(unused)]
@@ -144,6 +164,7 @@ impl AtCoder {
         return Self {
             client: HttpClient::new(cookies, "https://atcoder.jp"),
             host: String::from("https://atcoder.jp"),
+            username: String::new(),
         };
     }
 }

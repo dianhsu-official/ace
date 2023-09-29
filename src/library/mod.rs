@@ -16,4 +16,5 @@ pub trait OnlineJudge {
         submission_id: &str,
     ) -> Result<SubmissionInfo, String>;
     fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String>;
+    fn save_cookies(&mut self) -> Result<(), String>;
 }
