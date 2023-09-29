@@ -16,6 +16,7 @@ jobs:
       matrix:
         target:
           - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust
@@ -46,6 +47,7 @@ jobs:
       matrix:
         target:
           - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust
