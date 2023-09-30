@@ -52,8 +52,15 @@ impl Utility {
 
 #[test]
 fn test_get_indentifiers() {
+    #[cfg(target_os = "windows")]
     let cur_path = r#"C:\Users\dianhsu\workspace\Atcoder\abc321\abc321_g"#;
+    #[cfg(not(target_os = "windows"))]
+    let cur_path = r#"/home/dianhsu/workspace/Atcoder/abc321/abc321_g"#;
+    #[cfg(target_os = "windows")]
     let workspace = r#"C:\Users\dianhsu\workspace"#;
+    #[cfg(not(target_os = "windows"))]
+    let workspace = r#"/home/dianhsu/workspace"#;
+
     let res = Utility::get_indentifiers(cur_path, workspace);
     assert_eq!(res.is_ok(), true);
 }
