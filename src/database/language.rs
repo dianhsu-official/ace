@@ -6,7 +6,7 @@ use crate::model::LanguageConfig;
 
 impl ConfigDatabase {
     pub fn get_language_config(&self, language: ProgramLanguage) -> Result<LanguageConfig, String> {
-        let query = format!("SELECT value FROM language WHERE name = ?");
+        let query = format!("SELECT suffix, template_path, compile_command, execute_command, clear_command FROM language WHERE name = ?");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
             Err(info) => {
@@ -24,17 +24,26 @@ impl ConfigDatabase {
             Ok(row) => Some(row),
             Err(_) => None,
         }) {
-            let raw_value = row.read::<&str, _>("value").to_string();
-            let lang = match serde_json::from_str::<LanguageConfig>(raw_value.as_str()) {
-                Ok(lang) => lang,
-                Err(_) => continue,
-            };
-            return Ok(lang);
+            let suffix = row.read::<&str, _>("suffix").to_string();
+            let template_path = row.read::<&str, _>("template_path").to_string();
+            let compile_command = row.read::<&str, _>("compile_command").to_string();
+            let execute_command = row.read::<&str, _>("execute_command").to_string();
+            let clear_command = row.read::<&str, _>("clear_command").to_string();
+            return Ok(LanguageConfig {
+                suffix,
+                template_path,
+                compile_command,
+                execute_command,
+                clear_command,
+            });
         }
-        return Err(format!("Please set language config for {} first.", language));
+        return Err(format!(
+            "Please set language config for {} first.",
+            language
+        ));
     }
     pub fn list_lang_config(&self) -> Result<(), String> {
-        let query = format!("SELECT name, value FROM language");
+        let query = format!("SELECT name, suffix, template_path, compile_command, execute_command, clear_command FROM language");
         let stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
             Err(info) => {
@@ -42,23 +51,32 @@ impl ConfigDatabase {
             }
         };
         let mut table: Table = Table::new();
-        table.add_row(Row::new(vec![Cell::new("Name"), Cell::new("Value")]));
+        table.add_row(Row::new(vec![
+            Cell::new("name"),
+            Cell::new("suffix"),
+            Cell::new("template_path"),
+            Cell::new("compile_command"),
+            Cell::new("execute_command"),
+            Cell::new("clear_command"),
+        ]));
         for row in stmt.into_iter().filter_map(|row| match row {
             Ok(row) => Some(row),
             Err(_) => None,
         }) {
             let name = row.read::<&str, _>("name").to_string();
-            let raw_value = row.read::<&str, _>("value").to_string();
-            let lang = match serde_json::from_str::<LanguageConfig>(raw_value.as_str()) {
-                Ok(lang) => lang,
-                Err(_) => continue,
-            };
-            let value = format!(
-                "suffix: {}\ntemplate_path: {}\ncompile_command: {}\nexecute_command: {}\nclear_command: {}",
-                lang.suffix, lang.template_path, lang.compile_command, lang.execute_command, lang.clear_command);
+            let suffix = row.read::<&str, _>("suffix").to_string();
+            let template_path = row.read::<&str, _>("template_path").to_string();
+            let compile_command = row.read::<&str, _>("compile_command").to_string();
+            let execute_command = row.read::<&str, _>("execute_command").to_string();
+            let clear_command = row.read::<&str, _>("clear_command").to_string();
+
             table.add_row(Row::new(vec![
                 Cell::new(name.as_str()),
-                Cell::new(value.as_str()),
+                Cell::new(suffix.as_str()),
+                Cell::new(template_path.as_str()),
+                Cell::new(compile_command.as_str()),
+                Cell::new(execute_command.as_str()),
+                Cell::new(clear_command.as_str()),
             ]));
         }
         table.printstd();
@@ -73,20 +91,7 @@ impl ConfigDatabase {
         execute_command: &str,
         clear_command: &str,
     ) -> Result<(), String> {
-        let lang_value = LanguageConfig {
-            suffix: suffix.to_string(),
-            template_path: template_path.to_string(),
-            compile_command: compile_command.to_string(),
-            execute_command: execute_command.to_string(),
-            clear_command: clear_command.to_string(),
-        };
-        let value = match serde_json::to_string(&lang_value) {
-            Ok(value) => value,
-            Err(_) => {
-                return Err("Serialize error".to_string());
-            }
-        };
-        let query = format!("INSERT OR REPLACE INTO language (name, value) VALUES (?, ?)");
+        let query = format!("INSERT OR REPLACE INTO language (name, suffix, template_path, compile_command, execute_command, clear_command) VALUES (?, ?, ?, ?, ?, ?)");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
             Err(info) => return Err(info.to_string()),
@@ -98,18 +103,28 @@ impl ConfigDatabase {
                 return Err(info.to_string());
             }
         };
-        match stmt.bind((2, value.as_str())) {
-            Ok(_) => {}
-            Err(info) => {
-                return Err(info.to_string());
-            }
-        };
+        if let Err(info) = stmt.bind((2, suffix)) {
+            return Err(info.to_string());
+        }
+        if let Err(info) = stmt.bind((3, template_path)) {
+            return Err(info.to_string());
+        }
+        if let Err(info) = stmt.bind((4, compile_command)) {
+            return Err(info.to_string());
+        }
+        if let Err(info) = stmt.bind((5, execute_command)) {
+            return Err(info.to_string());
+        }
+        if let Err(info) = stmt.bind((6, clear_command)) {
+            return Err(info.to_string());
+        }
         match stmt.next() {
-            Ok(_) => {}
+            Ok(_) => {
+                return Ok(());
+            }
             Err(info) => {
                 return Err(info.to_string());
             }
         };
-        return Ok(());
     }
 }
