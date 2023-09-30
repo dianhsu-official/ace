@@ -1,10 +1,16 @@
-use crate::{
-    model::Platform, platform::atcoder::AtCoder, platform::codeforces::Codeforces,
-    traits::OnlineJudge,
-};
+use inquire::Select;
 
 use super::model::SubmitArgs;
-use std::env::current_dir;
+use crate::{
+    constants::ProgramLanguage,
+    database::CONFIG_DB,
+    misc::utility::Utility,
+    model::{Platform, Verdict},
+    platform::atcoder::AtCoder,
+    platform::codeforces::Codeforces,
+    traits::OnlineJudge,
+};
+use std::{env::current_dir, fs, thread, time::Duration};
 
 pub struct SubmitCommand {}
 pub struct SubmitInfo {
@@ -16,18 +22,42 @@ pub struct SubmitInfo {
 }
 impl SubmitCommand {
     pub fn handle(args: SubmitArgs) -> Result<String, String> {
-        let _ = args;
-        let submit_info: Option<SubmitInfo> = match args.filename {
-            Some(filename) => match current_dir() {
-                Ok(current_path) => match current_path.join(filename.clone()).to_str() {
-                    Some(file_path) => {
-                        match SubmitCommand::get_language_id(&filename, &file_path) {
-                            Ok(submit_info) => Some(submit_info),
+        let current_dir = match current_dir() {
+            Ok(current_dir) => current_dir,
+            Err(_) => {
+                return Err("Cannot get current path".to_string());
+            }
+        };
+        let filename = match args.filename {
+            Some(filename) => filename,
+            None => {
+                let files = match fs::read_dir(current_dir.clone()) {
+                    Ok(files) => files
+                        .into_iter()
+                        .filter_map(|x| match x {
+                            Ok(file) => match file.file_name().to_str() {
+                                Some(filename) => Some(filename.to_string()),
+                                None => None,
+                            },
                             Err(_) => None,
-                        }
+                        })
+                        .collect::<Vec<_>>(),
+                    Err(_) => {
+                        return Err("Cannot get current path".to_string());
                     }
-                    None => None,
-                },
+                };
+                let filename = match Select::new("Select file to ", files).prompt() {
+                    Ok(filename) => filename,
+                    Err(_) => {
+                        return Err("Cannot get current path".to_string());
+                    }
+                };
+                filename
+            }
+        };
+        let submit_info = match current_dir.join(filename.clone()).to_str() {
+            Some(file_path) => match Self::get_submit_info(&filename, file_path) {
+                Ok(submit_info) => Some(submit_info),
                 Err(_) => None,
             },
             None => None,
@@ -41,11 +71,41 @@ impl SubmitCommand {
                             return Err(info);
                         }
                     };
-                    return cf.submit(
+                    let submission_id = match cf.submit(
                         &submit_info.problem_identifier,
                         &submit_info.code,
                         &submit_info.language_id,
-                    );
+                    ) {
+                        Ok(submission_id) => submission_id,
+                        Err(info) => {
+                            return Err(info);
+                        }
+                    };
+                    let mut submission_info =
+                        match cf.retrive_result(&submit_info.problem_identifier, &submission_id) {
+                            Ok(submission_info) => submission_info,
+                            Err(_) => {
+                                return Err("Cannot get submission info".to_string());
+                            }
+                        };
+                    let mut retry_times = 100;
+                    while submission_info.verdict == Verdict::Waiting && retry_times > 0 {
+                        retry_times -= 1;
+                        thread::sleep(Duration::from_secs(1));
+                        submission_info = match cf
+                            .retrive_result(&submit_info.problem_identifier, &submission_id)
+                        {
+                            Ok(submission_info) => submission_info,
+                            Err(_) => {
+                                return Err("Cannot get submission info".to_string());
+                            }
+                        };
+                    }
+                    if submission_info.verdict == Verdict::Waiting {
+                        return Err("Cannot get submission info".to_string());
+                    } else {
+                        return Ok(format!("Submission result: {:?}", submission_info));
+                    }
                 }
                 Platform::AtCoder => {
                     let mut atc = match AtCoder::new() {
@@ -54,11 +114,41 @@ impl SubmitCommand {
                             return Err(info);
                         }
                     };
-                    return atc.submit(
+                    let submisson_id = match atc.submit(
                         &submit_info.problem_identifier,
                         &submit_info.code,
                         &submit_info.language_id,
-                    );
+                    ) {
+                        Ok(submission_id) => submission_id,
+                        Err(info) => {
+                            return Err(info);
+                        }
+                    };
+                    let mut submission_info =
+                        match atc.retrive_result(&submit_info.problem_identifier, &submisson_id) {
+                            Ok(submission_info) => submission_info,
+                            Err(_) => {
+                                return Err("Cannot get submission info".to_string());
+                            }
+                        };
+                    let mut retry_times = 100;
+                    while submission_info.verdict == Verdict::Waiting && retry_times > 0 {
+                        retry_times -= 1;
+                        thread::sleep(Duration::from_secs(1));
+                        submission_info = match atc
+                            .retrive_result(&submit_info.problem_identifier, &submisson_id)
+                        {
+                            Ok(submission_info) => submission_info,
+                            Err(_) => {
+                                return Err("Cannot get submission info".to_string());
+                            }
+                        };
+                    }
+                    if submission_info.verdict == Verdict::Waiting {
+                        return Err("Cannot get submission info".to_string());
+                    } else {
+                        return Ok(format!("Submission result: {:?}", submission_info));
+                    }
                 }
             },
             None => {
@@ -68,9 +158,78 @@ impl SubmitCommand {
     }
 }
 impl SubmitCommand {
-    fn get_language_id(filename: &str, file_path: &str) -> Result<SubmitInfo, String> {
+    fn get_submit_info(filename: &str, file_path: &str) -> Result<SubmitInfo, String> {
         let _ = filename;
         let _ = file_path;
-        todo!()
+        let workspace = match current_dir() {
+            Ok(current_path) => match current_path.to_str() {
+                Some(current_path) => current_path.to_string(),
+                None => {
+                    return Err("Cannot get current path".to_string());
+                }
+            },
+            Err(_) => {
+                return Err("Cannot get current path".to_string());
+            }
+        };
+        let language = match Utility::get_program_language_from_filename(filename) {
+            Ok(language) => language,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let (platform, problem_identifier, contest_identifier) =
+            match Utility::get_indentifiers(file_path, &workspace) {
+                Ok(resp) => resp,
+                Err(info) => {
+                    return Err(info);
+                }
+            };
+        let language_id = match SubmitCommand::get_submit_language_id(language, platform) {
+            Ok(language_id) => language_id,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let code = match fs::read_to_string(file_path) {
+            Ok(code) => code,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        return Ok(SubmitInfo {
+            platform,
+            language_id,
+            code,
+            problem_identifier,
+            contest_identifier,
+        });
+    }
+    fn get_submit_language_id(
+        language: ProgramLanguage,
+        platform: Platform,
+    ) -> Result<String, String> {
+        let language_ext = match CONFIG_DB.get_language_platform_submit_lang_id(language) {
+            Ok(language_ext) => language_ext,
+            Err(info) => return Err(info),
+        };
+        match platform {
+            Platform::Codeforces => match language_ext.codeforces {
+                Some(language_id) => {
+                    return Ok(language_id);
+                }
+                None => {
+                    return Err("Please set language config for codeforces first.".to_string());
+                }
+            },
+            Platform::AtCoder => match language_ext.atcoder {
+                Some(language_id) => {
+                    return Ok(language_id);
+                }
+                None => {
+                    return Err("Please set language config for atcoder first.".to_string());
+                }
+            },
+        }
     }
 }

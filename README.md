@@ -33,7 +33,7 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 | ace lang    | config command and template for specific language | ✅          |
 | ace parse   | get contest info                                  | ✅          |
 | ace gen     | generate code from template                       | ✅          |
-| ace submit  | submit code                                       | Processing |
+| ace submit  | submit code                                       | ✅          |
 | ace test    | local run test                                    | Pending    |
 | *ace race   | start race                                        | Pending    |
 | *ace debug  | start debug file                                  | Scheduling |

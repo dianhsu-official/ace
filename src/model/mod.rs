@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use strum_macros::Display;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Verdict {
     Waiting = 0,  // Waiting for judge or judge in progress
     Resulted = 1, // Judge finished
@@ -67,7 +67,7 @@ pub struct AccountInfo {
     pub last_use: String,
 }
 #[derive(Debug)]
-pub struct TestCase{
+pub struct TestCase {
     pub input: String,
     pub output: String,
 }

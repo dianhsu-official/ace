@@ -1,6 +1,10 @@
 use std::path;
 
-use crate::{constants::PLATFORM_MAP, model::Platform};
+use crate::{
+    constants::{ProgramLanguage, PLATFORM_MAP},
+    database::CONFIG_DB,
+    model::Platform,
+};
 
 pub mod account;
 
@@ -47,6 +51,15 @@ impl Utility {
             let problem_identifier = format!("{}_{}", path_vec[1], path_vec[2]);
             return Ok((*platform, contest_identifier, problem_identifier));
         }
+    }
+    pub fn get_program_language_from_filename(filename: &str) -> Result<ProgramLanguage, String> {
+        let suffix = match filename.split(".").last() {
+            Some(suffix) => suffix,
+            None => {
+                return Err("invalid filename".to_string());
+            }
+        };
+        return CONFIG_DB.get_program_language_from_suffix(&suffix);
     }
 }
 

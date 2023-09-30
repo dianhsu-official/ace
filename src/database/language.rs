@@ -1,9 +1,10 @@
 use prettytable::{Cell, Row, Table};
+use serde_derive::{Deserialize, Serialize};
 
 use super::ConfigDatabase;
 use crate::constants::ProgramLanguage;
-use crate::model::LanguageConfig;
-
+use crate::model::{LanguageConfig, Platform};
+use std::str::FromStr;
 impl ConfigDatabase {
     pub fn get_language_config(&self, language: ProgramLanguage) -> Result<LanguageConfig, String> {
         let query = format!("SELECT suffix, template_path, compile_command, execute_command, clear_command FROM language WHERE name = ?");
@@ -127,4 +128,131 @@ impl ConfigDatabase {
             }
         };
     }
+}
+
+impl ConfigDatabase {
+    pub fn get_program_language_from_suffix(
+        &self,
+        suffix: &str,
+    ) -> Result<ProgramLanguage, String> {
+        let query = format!("SELECT name FROM language WHERE suffix = ?");
+        let mut stmt = match self.connection.prepare(query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.bind((1, suffix)) {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        for row in stmt.into_iter().filter_map(|row| match row {
+            Ok(row) => Some(row),
+            Err(_) => None,
+        }) {
+            let name = row.read::<&str, _>("name").to_string();
+            match ProgramLanguage::from_str(name.as_str()) {
+                Ok(program_language) => {
+                    return Ok(program_language);
+                }
+                Err(info) => {
+                    return Err(info.to_string());
+                }
+            }
+        }
+        return Err(format!(
+            "Please set language config for suffix {} first.",
+            suffix
+        ));
+    }
+    #[allow(dead_code)]
+    pub fn set_language_platform_submit_lang_id(
+        &mut self,
+        language: ProgramLanguage,
+        platform: Platform,
+        lang_id: &str,
+    ) -> Result<LanguageExt, String> {
+        let mut language_ext = match self.get_language_platform_submit_lang_id(language) {
+            Ok(language_ext) => language_ext,
+            Err(_) => LanguageExt {
+                codeforces: None,
+                atcoder: None,
+            },
+        };
+        match platform {
+            Platform::Codeforces => {
+                language_ext.codeforces = Some(lang_id.to_string());
+            }
+            Platform::AtCoder => {
+                language_ext.atcoder = Some(lang_id.to_string());
+            }
+        }
+        let language_ext_str = match serde_json::to_string(&language_ext) {
+            Ok(language_ext_str) => language_ext_str,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        let query = String::from("INSERT OR REPLACE INTO language_ext (name, value) VALUES (?, ?)");
+        let mut stmt = match self.connection.prepare(query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        if let Err(info) = stmt.bind((1, language.to_string().as_str())) {
+            return Err(info.to_string());
+        }
+        if let Err(info) = stmt.bind((2, language_ext_str.as_str())) {
+            return Err(info.to_string());
+        }
+        match stmt.next() {
+            Ok(_) => {
+                return Ok(language_ext);
+            }
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+    }
+    pub fn get_language_platform_submit_lang_id(
+        &self,
+        language: ProgramLanguage,
+    ) -> Result<LanguageExt, String> {
+        let query = String::from("SELECT value FROM language_ext WHERE name = ?");
+        let mut stmt = match self.connection.prepare(query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        if let Err(info) = stmt.bind((1, language.to_string().as_str())) {
+            return Err(info.to_string());
+        }
+        for row in stmt.into_iter().filter_map(|row| match row {
+            Ok(row) => Some(row),
+            Err(_) => None,
+        }) {
+            let value = row.read::<&str, _>("value").to_string();
+            let language_ext: LanguageExt = match serde_json::from_str(&value) {
+                Ok(language_ext) => language_ext,
+                Err(info) => {
+                    return Err(info.to_string());
+                }
+            };
+            return Ok(language_ext);
+        }
+        return Err(format!(
+            "Please set language config for {} first.",
+            language
+        ));
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct LanguageExt {
+    pub codeforces: Option<String>,
+    pub atcoder: Option<String>,
 }
