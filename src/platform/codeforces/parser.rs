@@ -6,6 +6,7 @@ use scraper::Selector;
 use crate::model::Contest;
 use crate::model::ContestStatus;
 use crate::model::SubmissionInfo;
+use crate::model::TestCase;
 use crate::model::Verdict;
 
 use super::utility::Utility;
@@ -176,7 +177,7 @@ impl HtmlParser {
         submission_info.execute_memory = vec[6].text().collect::<String>().trim().to_string();
         return Ok(submission_info);
     }
-    pub fn parse_test_cases(resp: &str) -> Result<Vec<[String; 2]>, String> {
+    pub fn parse_test_cases(resp: &str) -> Result<Vec<TestCase>, String> {
         let document = Html::parse_document(resp);
         let mut res = Vec::new();
         let input_selector =
@@ -241,7 +242,10 @@ impl HtmlParser {
             ));
         }
         for i in 0..input_vec.len() {
-            res.push([input_vec[i].clone(), output_vec[i].clone()]);
+            res.push(TestCase{
+                input: input_vec[i].clone(),
+                output: output_vec[i].clone(),
+            });
         }
         return Ok(res);
     }

@@ -1,8 +1,10 @@
 use crate::model::Platform;
+use clap::ValueEnum;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use strum_macros::Display;
 use strum_macros::EnumIter;
+use strum_macros::EnumString;
 lazy_static! {
     pub static ref PLATFORMS: Vec<Platform> =
         Vec::from(vec![Platform::Codeforces, Platform::Atcoder]);
@@ -16,7 +18,7 @@ lazy_static! {
     ]);
 }
 #[allow(dead_code)]
-#[derive(Debug, EnumIter, Display, Copy, Clone)]
+#[derive(Debug, EnumIter, Display, Copy, Clone, ValueEnum, EnumString)]
 pub enum ProgramLanguage {
     C,
     Cpp,

@@ -5,6 +5,34 @@ use crate::constants::ProgramLanguage;
 use crate::model::LanguageConfig;
 
 impl ConfigDatabase {
+    pub fn get_language_config(&self, language: ProgramLanguage) -> Result<LanguageConfig, String> {
+        let query = format!("SELECT value FROM language WHERE name = ?");
+        let mut stmt = match self.connection.prepare(query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        let language_str = language.to_string();
+        match stmt.bind((1, language_str.as_str())) {
+            Ok(_) => {}
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        for row in stmt.into_iter().filter_map(|row| match row {
+            Ok(row) => Some(row),
+            Err(_) => None,
+        }) {
+            let raw_value = row.read::<&str, _>("value").to_string();
+            let lang = match serde_json::from_str::<LanguageConfig>(raw_value.as_str()) {
+                Ok(lang) => lang,
+                Err(_) => continue,
+            };
+            return Ok(lang);
+        }
+        return Err(format!("Please set language config for {} first.", language));
+    }
     pub fn list_lang_config(&self) -> Result<(), String> {
         let query = format!("SELECT name, value FROM language");
         let stmt = match self.connection.prepare(query) {

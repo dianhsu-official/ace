@@ -37,6 +37,26 @@ impl ConfigDatabase {
                 exit(1);
             }
         }
+        let workspace = match home::home_dir() {
+            Some(home_path) => {
+                let workspace = home_path.join("ace");
+                match workspace.to_str() {
+                    Some(workspace) => Some(workspace.to_string()),
+                    None => None,
+                }
+            }
+            None => None,
+        };
+        if let Some(workspace_dir) = workspace {
+            let query = format!(
+                "INSERT OR IGNORE INTO config (name, value) VALUES ('workspace', '{}')",
+                workspace_dir
+            );
+            match connection.execute(query.as_str()) {
+                Ok(_) => {}
+                Err(_) => {}
+            }
+        }
         Self { connection }
     }
     pub fn new() -> Self {

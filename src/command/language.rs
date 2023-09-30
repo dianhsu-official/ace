@@ -2,7 +2,7 @@ use inquire::{Select, Text};
 use strum::IntoEnumIterator;
 
 use super::model::LanguageArgs;
-use crate::{command::model::LanguageOptions, database::CONFIG_DB, constants::ProgramLanguage};
+use crate::{command::model::LanguageOptions, constants::ProgramLanguage, database::CONFIG_DB};
 pub struct LanguageCommand {}
 
 impl LanguageCommand {
@@ -56,7 +56,7 @@ impl LanguageCommand {
                         Ok(value) => value,
                         Err(_) => String::from(""),
                     };
-                return match CONFIG_DB.set_lang_config(
+                match CONFIG_DB.set_lang_config(
                     lang,
                     &suffix,
                     &template_path,
@@ -64,9 +64,27 @@ impl LanguageCommand {
                     &execute_command,
                     &clear_command,
                 ) {
-                    Ok(_) => Ok(format!("Language {} set.", lang.to_string())),
-                    Err(info) => Err(info),
+                    Ok(_) => {}
+                    Err(info) => return Err(info),
                 };
+                let set_default = match Select::new(
+                    "Do you want to set this language as default?",
+                    vec!["Yes", "No"],
+                )
+                .prompt()
+                {
+                    Ok(ans) => ans,
+                    Err(_) => {
+                        return Err("Set default failed".to_string());
+                    }
+                };
+                if set_default == "Yes" {
+                    match CONFIG_DB.set_config("language", lang.to_string().as_str()) {
+                        Ok(_) => {}
+                        Err(_) => {}
+                    }
+                }
+                return Ok(String::from("Set language config success"));
             }
         }
     }

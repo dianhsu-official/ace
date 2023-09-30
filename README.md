@@ -26,15 +26,16 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 
 ###  Generic 
 
-| Command     | Description       | Progress   |
-| ----------- | ----------------- | ---------- |
-| ace account | user management   | ✅          |
-| ace config  | config management | ✅          |
-| ace parse   | get contest info  | Processing |
-| ace submit  | submit code       | Processing |
-| ace test    | local run test    | Pending    |
-| *ace race   | start race        | Pending    |
-
+| Command     | Description                 | Progress   |
+| ----------- | --------------------------- | ---------- |
+| ace account | user management             | ✅          |
+| ace config  | config management           | ✅          |
+| ace parse   | get contest info            | ✅          |
+| ace gen     | generate code from template | Processing |
+| ace submit  | submit code                 | Processing |
+| ace test    | local run test              | Pending    |
+| *ace race   | start race                  | Pending    |
+| *ace debug  | start debug file            | Scheduling |
 ## Snippets
 
 You can insert some snippets into your template code or command. When generate a code from template or execute your command, ace will replace all snippets by following rules.

@@ -1,4 +1,4 @@
-use crate::model::Platform;
+use crate::model::{Platform, TestCase};
 use crate::traits::OnlineJudge;
 use crate::database::CONFIG_DB;
 use crate::misc::http_client::HttpClient;
@@ -13,8 +13,8 @@ use self::parser::HtmlParser;
 use self::utility::Utility;
 pub struct AtCoder {
     pub client: HttpClient,
-    pub host: String,
     pub username: String,
+    pub password: String
 }
 impl Drop for AtCoder {
     fn drop(&mut self) {
@@ -98,7 +98,7 @@ impl OnlineJudge for AtCoder {
 
     /// Get test cases from AtCoder
     /// Success: Vec<[String; 2]> where [0] is input and [1] is output
-    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<[String; 2]>, String> {
+    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<TestCase>, String> {
         let vec = problem_identifier.split("_").collect::<Vec<_>>();
         if vec.len() != 2 {
             return Err(String::from("Invalid problem identifier."));
@@ -159,12 +159,27 @@ impl OnlineJudge for AtCoder {
     }
 }
 impl AtCoder {
-    #[allow(unused)]
-    pub fn new(cookies: &str) -> Self {
-        return Self {
-            client: HttpClient::new(cookies, "https://atcoder.jp"),
-            host: String::from("https://atcoder.jp"),
-            username: String::new(),
+    pub fn new() -> Self {
+        let endpoint = String::from("https://atcoder.jp");
+        let account_info = match CONFIG_DB.get_default_account(Platform::Codeforces) {
+            Ok(account_info) => Some(account_info),
+            Err(_) => None,
         };
+        match account_info {
+            Some(account_info) => Self::create(
+                &account_info.username,
+                &account_info.password,
+                &account_info.cookies,
+                &endpoint,
+            ),
+            None => Self::create("", "", "", &endpoint),
+        }
+    }
+    pub fn create(username: &str, password: &str, cookies: &str, endpoint: &str) -> Self {
+        Self {
+            client: HttpClient::new(cookies, &endpoint),
+            username: String::from(username),
+            password: String::from(password),
+        }
     }
 }

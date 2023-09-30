@@ -1,4 +1,4 @@
-use crate::model::Platform;
+use crate::model::{AccountInfo, Platform};
 
 use super::ConfigDatabase;
 impl ConfigDatabase {
@@ -29,6 +29,42 @@ impl ConfigDatabase {
                 return;
             }
         };
+    }
+    pub fn get_default_account(&self, platform: Platform) -> Result<AccountInfo, String> {
+        let platform_str = platform.to_string();
+        let mut stmt = match self.connection.prepare("SELECT username, password, cookies, current, last_use FROM account WHERE platform = ? AND current = 1") {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                log::error!("{}", info);
+                return Err(info.to_string());
+            }
+        };
+        match stmt.bind((1, platform_str.as_str())) {
+            Ok(_) => {}
+            Err(info) => {
+                log::error!("{}", info);
+                return Err(info.to_string());
+            }
+        };
+        for row in stmt.into_iter().filter_map(|row| match row {
+            Ok(row) => Some(row),
+            Err(_) => None,
+        }) {
+            let mut account = AccountInfo {
+                username: String::new(),
+                password: String::new(),
+                cookies: String::new(),
+                current: 0,
+                last_use: String::new(),
+            };
+            account.username = row.read::<&str, _>("username").to_string();
+            account.password = row.read::<&str, _>("password").to_string();
+            account.cookies = row.read::<&str, _>("cookies").to_string();
+            account.current = row.read::<i64, _>("current");
+            account.last_use = row.read::<&str, _>("last_use").to_string();
+            return Ok(account);
+        }
+        return Err("No default account found.".to_string());
     }
     /// Get the current account of the platform.
     pub fn get_accounts(&self, platform: Option<Platform>) -> Vec<[String; 6]> {

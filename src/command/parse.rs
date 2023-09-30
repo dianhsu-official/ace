@@ -1,0 +1,131 @@
+use std::fs::create_dir_all;
+use std::path;
+
+use super::model::ParseArgs;
+use crate::constants::PLATFORM_MAP;
+use crate::database::CONFIG_DB;
+use crate::model::{ContestStatus, Platform};
+use crate::platform::{atcoder::AtCoder, codeforces::Codeforces};
+use crate::traits::OnlineJudge;
+
+pub struct ParseCommand {}
+
+impl ParseCommand {
+    pub fn handle(args: ParseArgs) -> Result<String, String> {
+        let real_platform = match PLATFORM_MAP.get(args.platform.as_str()) {
+            Some(platform) => *platform,
+            None => {
+                return Err(format!("Platform {} not found", args.platform));
+            }
+        };
+        let contest_test_cases = match real_platform {
+            Platform::Codeforces => {
+                let mut cf = Codeforces::new();
+                let contest = match cf.get_contest(&args.contest_identifier) {
+                    Ok(contest) => contest,
+                    Err(info) => {
+                        return Err(info);
+                    }
+                };
+                let mut contest_test_cases = Vec::new();
+                if contest.status != ContestStatus::NotStarted {
+                    let problem_identifiers = match cf.get_problems(&args.contest_identifier) {
+                        Ok(problem_identifiers) => problem_identifiers,
+                        Err(info) => {
+                            return Err(info);
+                        }
+                    };
+                    for problem_identifier in problem_identifiers {
+                        let test_cases = match cf.get_test_cases(&problem_identifier) {
+                            Ok(test_cases) => test_cases,
+                            Err(info) => {
+                                return Err(info);
+                            }
+                        };
+                        contest_test_cases.push((problem_identifier, test_cases));
+                    }
+                    contest_test_cases
+                } else {
+                    return Err(format!("Contest {} not started", args.contest_identifier));
+                }
+            }
+            Platform::Atcoder => {
+                let mut atc = AtCoder::new();
+                let contest = match atc.get_contest(&args.contest_identifier) {
+                    Ok(contest) => contest,
+                    Err(info) => {
+                        return Err(info);
+                    }
+                };
+                let mut contest_test_cases = Vec::new();
+                if contest.status != ContestStatus::NotStarted {
+                    let problem_identifiers = match atc.get_problems(&args.contest_identifier) {
+                        Ok(problem_identifiers) => problem_identifiers,
+                        Err(info) => {
+                            return Err(info);
+                        }
+                    };
+                    for problem_identifier in problem_identifiers {
+                        let test_cases = match atc.get_test_cases(&problem_identifier) {
+                            Ok(test_cases) => test_cases,
+                            Err(info) => {
+                                return Err(info);
+                            }
+                        };
+                        contest_test_cases.push((problem_identifier, test_cases));
+                    }
+                    contest_test_cases
+                } else {
+                    return Err(format!("Contest {} not started", args.contest_identifier));
+                }
+            }
+        };
+        let platform_str = real_platform.to_string();
+        let workspace = match CONFIG_DB.get_config("workspace") {
+            Ok(workspace) => workspace,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let contest_path = path::Path::new(workspace.as_str())
+            .join(platform_str)
+            .join(args.contest_identifier.to_lowercase());
+        match create_dir_all(contest_path.clone()) {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(String::from("Create contest directory failed"));
+            }
+        }
+        for (problem_identifier, test_cases) in contest_test_cases {
+            let vec = problem_identifier.split("_").collect::<Vec<_>>();
+            if vec.len() != 2 {
+                return Err(String::from("Invalid problem identifier."));
+            }
+            let contest_problem_identifier = vec[1];
+            let problem_path = contest_path.join(contest_problem_identifier.to_lowercase());
+            match create_dir_all(problem_path.clone()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(String::from("Create problem directory failed"));
+                }
+            }
+            for (index, test_case) in test_cases.iter().enumerate() {
+                let input_path = problem_path.clone().join(format!("{:03}i.txt", index + 1));
+                let output_path = problem_path.clone().join(format!("{:03}o.txt", index + 1));
+                match std::fs::write(input_path, test_case.input.as_bytes()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(String::from("Write input file failed"));
+                    }
+                }
+                match std::fs::write(output_path, test_case.output.as_bytes()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        return Err(String::from("Write output file failed"));
+                    }
+                }
+            }
+        }
+        return Ok(String::from("Parse command success"));
+    }
+}

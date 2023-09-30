@@ -1,7 +1,7 @@
 use chrono::Utc;
 use scraper::{Html, Selector};
 
-use crate::model::{Contest, ContestStatus, SubmissionInfo, Verdict};
+use crate::model::{Contest, ContestStatus, SubmissionInfo, TestCase, Verdict};
 
 use super::utility::Utility;
 
@@ -189,7 +189,7 @@ impl HtmlParser {
         return Err(String::from("Failed to get recent submit id."));
     }
 
-    pub fn parse_test_cases(resp: &str) -> Result<Vec<[String; 2]>, String> {
+    pub fn parse_test_cases(resp: &str) -> Result<Vec<TestCase>, String> {
         let document = Html::parse_document(&resp);
         let mut inputs_ja = vec![];
         let mut outputs_ja = vec![];
@@ -237,11 +237,17 @@ impl HtmlParser {
         let mut sample_vec = Vec::new();
         if !inputs_en.is_empty() && inputs_en.len() == outputs_en.len() {
             for i in 0..inputs_en.len() {
-                sample_vec.push([inputs_en[i].clone(), outputs_en[i].clone()]);
+                sample_vec.push(TestCase {
+                    input: inputs_en[i].clone(),
+                    output: outputs_en[i].clone(),
+                });
             }
         } else if !inputs_ja.is_empty() && inputs_ja.len() == outputs_ja.len() {
             for i in 0..inputs_ja.len() {
-                sample_vec.push([inputs_ja[i].clone(), outputs_ja[i].clone()]);
+                sample_vec.push(TestCase {
+                    input: inputs_ja[i].clone(),
+                    output: outputs_ja[i].clone(),
+                });
             }
         } else {
             return Err(String::from("Failed to get test cases."));
@@ -283,7 +289,7 @@ fn test_parse_recent_submission_id() {
 }
 
 #[test]
-fn test_parse_test_cases(){
+fn test_parse_test_cases() {
     let content = std::fs::read_to_string("assets/atcoder/test_cases.html").unwrap();
     let test_cases = HtmlParser::parse_test_cases(&content).unwrap();
     println!("{:?}", test_cases)

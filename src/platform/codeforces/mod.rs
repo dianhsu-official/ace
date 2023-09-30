@@ -4,11 +4,12 @@ mod constants;
 mod parser;
 mod utility;
 use crate::database::CONFIG_DB;
-use crate::traits::OnlineJudge;
 use crate::misc::http_client::HttpClient;
 use crate::model::Contest;
 use crate::model::Platform;
 use crate::model::SubmissionInfo;
+use crate::model::TestCase;
+use crate::traits::OnlineJudge;
 use builder::UrlBuilder;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
 use regex::Regex;
@@ -18,6 +19,7 @@ use self::utility::Utility;
 pub struct Codeforces {
     pub client: HttpClient,
     pub username: String,
+    pub password: String,
 }
 impl Drop for Codeforces {
     fn drop(&mut self) {
@@ -139,7 +141,7 @@ impl OnlineJudge for Codeforces {
         };
     }
     /// Get test cases
-    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<[String; 2]>, String> {
+    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<TestCase>, String> {
         let info: Vec<&str> = problem_identifier.split("_").collect();
         if info.len() != 2 {
             return Err(String::from("Invalid identifier."));
@@ -214,12 +216,27 @@ impl OnlineJudge for Codeforces {
 }
 
 impl Codeforces {
-    #[allow(unused)]
-    fn new(cookies: &str) -> Self {
+    pub fn new() -> Self {
         let endpoint = String::from("https://codeforces.com");
+        let account_info = match CONFIG_DB.get_default_account(Platform::Codeforces) {
+            Ok(account_info) => Some(account_info),
+            Err(_) => None,
+        };
+        match account_info {
+            Some(account_info) => Self::create(
+                &account_info.username,
+                &account_info.password,
+                &account_info.cookies,
+                &endpoint,
+            ),
+            None => Self::create("", "", "", &endpoint),
+        }
+    }
+    pub fn create(username: &str, password: &str, cookies: &str, endpoint: &str) -> Self {
         Self {
             client: HttpClient::new(cookies, &endpoint),
-            username: String::new(),
+            username: String::from(username),
+            password: String::from(password),
         }
     }
     fn to_hex_bytes(input: &str) -> [u8; 16] {
@@ -267,7 +284,7 @@ impl Codeforces {
 #[ignore = "reason: need login"]
 fn test_login() {
     dotenv::dotenv().ok();
-    let mut cf = Codeforces::new("");
+    let mut cf = Codeforces::new();
     let username = dotenv::var("CODEFORCES_USERNAME").unwrap();
     let password = dotenv::var("CODEFORCES_PASSWORD").unwrap();
     let resp = cf.login(&username, &password);

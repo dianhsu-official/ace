@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 
-use crate::model::Platform;
+use crate::{misc::utility::Utility, model::Platform};
 
 #[derive(Debug, Clone)]
 pub struct Context {
@@ -25,6 +25,17 @@ impl Context {
             filename_with_extension: None,
             filename_without_extension: None,
         }
+    }
+    pub fn update(&mut self, cur_path: &str) {
+        match Utility::get_indentifiers(cur_path) {
+            Ok(res) => {
+                self.platform = Some(res.0);
+                self.contest_identifier = Some(res.1);
+                self.problem_identifier = Some(res.2);
+                self.workspace_directory = Some(cur_path.to_string());
+            }
+            Err(_) => {}
+        };
     }
 }
 lazy_static! {

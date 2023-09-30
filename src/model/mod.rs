@@ -29,7 +29,7 @@ impl SubmissionInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ContestStatus {
     NotStarted = 0,
     Running = 1,
@@ -57,4 +57,17 @@ pub struct LanguageConfig {
     pub compile_command: String,
     pub execute_command: String,
     pub clear_command: String,
+}
+
+pub struct AccountInfo {
+    pub username: String,
+    pub password: String,
+    pub cookies: String,
+    pub current: i64,
+    pub last_use: String,
+}
+#[derive(Debug)]
+pub struct TestCase{
+    pub input: String,
+    pub output: String,
 }

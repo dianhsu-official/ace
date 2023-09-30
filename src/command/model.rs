@@ -1,12 +1,19 @@
 use clap::{Args, Subcommand};
+
+use crate::constants::ProgramLanguage;
 #[derive(Subcommand)]
 pub enum Commands {
     /// Manage account for ace, such as add, remove, list
     Account(AccountArgs),
     /// Manage config for ace, such as set, get, remove
     Config(ConfigArgs),
-
+    /// Manage language for ace, such as set, list
     Lang(LanguageArgs),
+    /// Parse the problem
+    Parse(ParseArgs),
+    /// Generate template
+    Gen(GenerateArgs),
+    
 }
 
 #[derive(Subcommand)]
@@ -56,4 +63,15 @@ pub enum LanguageOptions {
 pub struct LanguageArgs {
     #[command(subcommand)]
     pub options: LanguageOptions,
+}
+
+#[derive(Args)]
+pub struct ParseArgs{
+    pub platform: String,
+    pub contest_identifier: String,
+}
+
+#[derive(Args)]
+pub struct GenerateArgs{
+    pub language: Option<ProgramLanguage>,
 }

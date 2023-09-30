@@ -41,7 +41,6 @@ impl HttpClient {
 
     #[allow(unused)]
     pub fn get(&mut self, url: &str) -> Result<String, String> {
-        log::info!("get data from {}.", url);
         let res = match self.client.get(url).send() {
             Ok(res) => res,
             Err(err) => return Err(format!("Request error, {}", err)),

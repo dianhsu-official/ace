@@ -1,4 +1,4 @@
-use crate::model::{Contest, SubmissionInfo};
+use crate::model::{Contest, SubmissionInfo, TestCase};
 pub trait OnlineJudge {
     fn submit(
         &mut self,
@@ -9,7 +9,7 @@ pub trait OnlineJudge {
     fn is_login(&mut self) -> Result<String, String>;
     fn login(&mut self, username: &str, password: &str) -> Result<String, String>;
     fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<String>, String>;
-    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<[String; 2]>, String>;
+    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<TestCase>, String>;
     fn retrive_result(
         &mut self,
         problem_identifier: &str,
