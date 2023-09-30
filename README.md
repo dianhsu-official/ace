@@ -5,10 +5,6 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 
 ## Current Progress
 
-### General
-- [ ] Support Configuration load and save.
-- [ ] Multiple accounts supported.
-
 ### Platform Spec
 
 |                  | Atcoder | Codeforces |
@@ -16,7 +12,7 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 | Check login      | ✅       | ✅          |
 | Login            | ✅       | ✅          |
 | Import cookies   | ✅       | ✅          |
-| Save cookies     |         |            |
+| Save cookies     | ✅       | ✅          |
 | Submit code      | ✅       | ✅          |
 | Retrieve result  | ✅       | ✅          |
 | Get problem list | ✅       | ✅          |
@@ -28,11 +24,30 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 
 ###  Generic 
 
-| Command     | Description       | Progress |
-| ----------- | ----------------- | -------- |
-| ace account | user management   | ✅        |
-| ace config  | config management | ✅        |
-| ace parse   | get contest info  | Pending  |
-| ace submit  | submit code       | Pending  |
-| ace test    | local run test    | Pending  |
-| *ace race   | start race        | Pending  |
+| Command     | Description       | Progress   |
+| ----------- | ----------------- | ---------- |
+| ace account | user management   | ✅          |
+| ace config  | config management | ✅          |
+| ace parse   | get contest info  | Processing |
+| ace submit  | submit code       | Processing |
+| ace test    | local run test    | Pending    |
+| *ace race   | start race        | Pending    |
+
+## Snippets
+
+You can insert some snippets into your template code or command. When generate a code from template or execute your command, ace will replace all snippets by following rules.
+
+| snippet         | description                                     | e.g.                          | Capability (code/command) |
+| --------------- | ----------------------------------------------- | ----------------------------- | ------------------------- |
+| `%$platform$%`  | target platform                                 | `codeforces`                  | ✅/⚠️                       |
+| `%$pid$%`       | problem identifier                              | `1848_A`                      | ✅/⚠️                       |
+| `%$cid$%`       | contest identifier                              | `1848`                        | ✅/⚠️                       |
+| `%$workspace$%` | current directory                               | `/home/dianhsu/ace/cf/1848_A` | ✅/✅                       |
+| `%$full$%`      | full name of source file                        | `main.cpp`                    | ✅/✅                       |
+| `%$rand$%`      | ramdom string with 8 character(`^[a-z0-9]{8}$`) | `a1b2c3d4`                    | ✅/✅                       |
+| `%$Y$%`         | Year                                            | `2023`                        | ✅/✅                       |
+| `%$M$%`         | Month                                           | `01`                          | ✅/✅                       |
+| `%$D$%`         | Day                                             | `01`                          | ✅/✅                       |
+| `%$h$%`         | Hour                                            | `23`                          | ✅/✅                       |
+| `%$m$%`         | Minute                                          | `04`                          | ✅/✅                       |
+| `%$s$%`         | Second                                          | `00`                          | ✅/✅                       |

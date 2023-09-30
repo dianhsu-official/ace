@@ -25,10 +25,17 @@ pub struct AccountArgs {
 
 #[derive(Subcommand)]
 pub enum ConfigOptions {
+    /// Get config value
     Get,
+    /// Add config name and value
     Add,
+    /// List all config
     List,
+    /// Set config value
     Set,
+    /// Set language compile command and run command
+    Lang,
+    /// Remove config name and value
     Remove,
 }
 #[derive(Args)]

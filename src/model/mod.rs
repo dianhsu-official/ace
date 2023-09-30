@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use std::fmt::Display;
+use strum_macros::Display;
 #[derive(Debug)]
 pub enum Verdict {
     Waiting = 0,  // Waiting for judge or judge in progress
@@ -44,26 +44,17 @@ pub struct Contest {
     pub status: ContestStatus,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct CodeTemplate {
-    pub alias: String,
-    pub lang: String,
-    pub path: String,
-    pub suffix: String,
-    pub before_script: String,
-    pub script: String,
-    pub after_script: String,
-}
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy, Display, Debug)]
 pub enum Platform {
     Codeforces,
     Atcoder,
 }
-impl Display for Platform {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Platform::Codeforces => "codeforces",
-            Platform::Atcoder => "atcoder",
-        })
-    }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LanguageConfig {
+    pub suffix: String,
+    pub template_path: String,
+    pub compile_command: String,
+    pub execute_command: String,
+    pub clear_command: String,
 }

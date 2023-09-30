@@ -5,6 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Cargo launch",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=ace",
+                    "--package=ace"
+                ]
+            },
+            "cwd": "${workspaceRoot}",
+            "args": [
+                "config",
+                "lang"
+            ]
+        },
+        {
             "type": "cppvsdbg",
             "request": "launch",
             "name": "Cargo test",
