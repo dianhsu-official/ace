@@ -5,6 +5,7 @@ use std::path::Path;
 use std::process::exit;
 mod account;
 mod config;
+mod language;
 lazy_static! {
     pub static ref CONFIG_DB: ConfigDatabase = ConfigDatabase::new();
 }
@@ -16,6 +17,7 @@ pub struct ConfigDatabase {
 const INIT_QUERY: &str = "
 CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, value TEXT);
 CREATE TABLE IF NOT EXISTS account (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, username TEXT, password TEXT, cookies TEXT default \"\", last_use TEXT default \"1970-01-01T00:00:00+00:00\", current INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS language (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, value TEXT);
 ";
 impl ConfigDatabase {
     pub fn create_from_path(config_path: &Path) -> Self {
@@ -45,7 +47,6 @@ impl ConfigDatabase {
         let config_path = binding.as_path();
         return Self::create_from_path(config_path);
     }
-
 }
 
 #[test]

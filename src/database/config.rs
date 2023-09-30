@@ -1,6 +1,4 @@
 use super::ConfigDatabase;
-use crate::constants::ProgramLanguage;
-use crate::model::LanguageConfig;
 
 impl ConfigDatabase {
     pub fn create_config(&self, name: &str, value: &str) -> Result<(), String> {
@@ -115,29 +113,5 @@ impl ConfigDatabase {
             }
         };
         return Ok(());
-    }
-    pub fn set_lang_config(
-        &self,
-        lang: ProgramLanguage,
-        suffix: &str,
-        template_path: &str,
-        compile_command: &str,
-        execute_command: &str,
-        clear_command: &str,
-    ) -> Result<(), String> {
-        let lang_value = LanguageConfig {
-            suffix: suffix.to_string(),
-            template_path: template_path.to_string(),
-            compile_command: compile_command.to_string(),
-            execute_command: execute_command.to_string(),
-            clear_command: clear_command.to_string(),
-        };
-        let value = match serde_json::to_string(&lang_value) {
-            Ok(value) => value,
-            Err(_) => {
-                return Err("Serialize error".to_string());
-            }
-        };
-        return self.set_config(&lang.to_string(), &value);
     }
 }

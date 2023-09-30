@@ -5,6 +5,8 @@ pub enum Commands {
     Account(AccountArgs),
     /// Manage config for ace, such as set, get, remove
     Config(ConfigArgs),
+
+    Lang(LanguageArgs),
 }
 
 #[derive(Subcommand)]
@@ -33,8 +35,6 @@ pub enum ConfigOptions {
     List,
     /// Set config value
     Set,
-    /// Set language compile command and run command
-    Lang,
     /// Remove config name and value
     Remove,
 }
@@ -42,4 +42,18 @@ pub enum ConfigOptions {
 pub struct ConfigArgs {
     #[command(subcommand)]
     pub options: ConfigOptions,
+}
+
+#[derive(Subcommand)]
+pub enum LanguageOptions {
+    /// List all language config
+    List,
+    /// Set language config
+    Set,
+}
+
+#[derive(Args)]
+pub struct LanguageArgs {
+    #[command(subcommand)]
+    pub options: LanguageOptions,
 }
