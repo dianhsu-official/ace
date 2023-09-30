@@ -49,7 +49,7 @@ impl ParseCommand {
                     return Err(format!("Contest {} not started", args.contest_identifier));
                 }
             }
-            Platform::Atcoder => {
+            Platform::AtCoder => {
                 let mut atc = AtCoder::new();
                 let contest = match atc.get_contest(&args.contest_identifier) {
                     Ok(contest) => contest,

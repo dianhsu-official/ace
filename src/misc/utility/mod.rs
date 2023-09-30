@@ -1,6 +1,6 @@
 use std::path;
 
-use crate::{constants::PLATFORM_MAP, database::CONFIG_DB, model::Platform};
+use crate::{constants::PLATFORM_MAP, model::Platform};
 
 pub mod account;
 
@@ -12,22 +12,19 @@ impl Utility {
     /// * `cur_path` - Current path.
     /// # Returns
     /// * `Ok((Platform, String, String))` - Platform, contest identifier and contest problem identifier(e.g. [a, b, c, d, e]).
-    pub fn get_indentifiers(cur_path: &str) -> Result<(Platform, String, String), String> {
-        let workspace = match CONFIG_DB.get_config("workspace") {
-            Ok(workspace) => workspace,
-            Err(info) => return Err(info),
-        };
-        if !cur_path.clone().starts_with(&workspace) {
+    pub fn get_indentifiers(
+        cur_path: &str,
+        workspace: &str,
+    ) -> Result<(Platform, String, String), String> {
+        if !cur_path.starts_with(workspace) {
             return Err("current path is not in workspace".to_string());
         }
-        println!("{}", cur_path);
         let relative_path = match cur_path.strip_prefix(&workspace) {
             Some(path) => path,
             None => {
                 return Err("cannot get relative path from workspace".to_string());
             }
         };
-        println!("{}", relative_path);
         let path_vec = relative_path
             .split(path::MAIN_SEPARATOR)
             .filter_map(|x| {
@@ -56,6 +53,7 @@ impl Utility {
 #[test]
 fn test_get_indentifiers() {
     let cur_path = r#"C:\Users\dianhsu\workspace\Atcoder\abc321\abc321_g"#;
-    let res = Utility::get_indentifiers(cur_path);
+    let workspace = r#"C:\Users\dianhsu\workspace"#;
+    let res = Utility::get_indentifiers(cur_path, workspace);
     assert_eq!(res.is_ok(), true);
 }

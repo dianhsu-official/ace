@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 
-use crate::{misc::utility::Utility, model::Platform};
+use crate::{database::CONFIG_DB, misc::utility::Utility, model::Platform};
 
 #[derive(Debug, Clone)]
 pub struct Context {
@@ -27,15 +27,17 @@ impl Context {
         }
     }
     pub fn update(&mut self, cur_path: &str) {
-        match Utility::get_indentifiers(cur_path) {
-            Ok(res) => {
-                self.platform = Some(res.0);
-                self.contest_identifier = Some(res.1);
-                self.problem_identifier = Some(res.2);
-                self.workspace_directory = Some(cur_path.to_string());
-            }
-            Err(_) => {}
-        };
+        if let Ok(workspace) = CONFIG_DB.get_config("workspace") {
+            match Utility::get_indentifiers(cur_path, &workspace) {
+                Ok(res) => {
+                    self.platform = Some(res.0);
+                    self.contest_identifier = Some(res.1);
+                    self.problem_identifier = Some(res.2);
+                    self.workspace_directory = Some(cur_path.to_string());
+                }
+                Err(_) => {}
+            };
+        }
     }
 }
 lazy_static! {

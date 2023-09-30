@@ -4,6 +4,7 @@ mod generate;
 mod language;
 pub mod model;
 mod parse;
+mod submit;
 use clap::Parser;
 
 use self::account::AccountCommand;
@@ -12,6 +13,7 @@ use self::generate::GenerateCommand;
 use self::language::LanguageCommand;
 use self::model::Commands;
 use self::parse::ParseCommand;
+use self::submit::SubmitCommand;
 use crate::context::CONTEXT;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -40,6 +42,7 @@ impl Cli {
             Commands::Lang(args) => LanguageCommand::handle(args),
             Commands::Parse(args) => ParseCommand::handle(args),
             Commands::Gen(args) => GenerateCommand::handle(args),
+            Commands::Submit(args) => SubmitCommand::handle(args),
         };
         match res {
             Ok(res) => {

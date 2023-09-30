@@ -7,14 +7,14 @@ use strum_macros::EnumIter;
 use strum_macros::EnumString;
 lazy_static! {
     pub static ref PLATFORMS: Vec<Platform> =
-        Vec::from(vec![Platform::Codeforces, Platform::Atcoder]);
+        Vec::from(vec![Platform::Codeforces, Platform::AtCoder]);
     pub static ref PLATFORM_MAP: HashMap<&'static str, Platform> = HashMap::from([
         ("cf", Platform::Codeforces),
         ("codeforces", Platform::Codeforces),
-        ("at", Platform::Atcoder),
-        ("atc", Platform::Atcoder),
-        ("ac", Platform::Atcoder),
-        ("atcoder", Platform::Atcoder),
+        ("at", Platform::AtCoder),
+        ("atc", Platform::AtCoder),
+        ("ac", Platform::AtCoder),
+        ("atcoder", Platform::AtCoder),
     ]);
 }
 #[allow(dead_code)]

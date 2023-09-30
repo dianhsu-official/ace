@@ -13,7 +13,8 @@ pub enum Commands {
     Parse(ParseArgs),
     /// Generate template
     Gen(GenerateArgs),
-    
+    /// Submit the code
+    Submit(SubmitArgs),
 }
 
 #[derive(Subcommand)]
@@ -66,12 +67,17 @@ pub struct LanguageArgs {
 }
 
 #[derive(Args)]
-pub struct ParseArgs{
+pub struct ParseArgs {
     pub platform: String,
     pub contest_identifier: String,
 }
 
 #[derive(Args)]
-pub struct GenerateArgs{
+pub struct GenerateArgs {
     pub language: Option<ProgramLanguage>,
+}
+
+#[derive(Args)]
+pub struct SubmitArgs {
+    pub filename: Option<String>,
 }

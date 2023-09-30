@@ -150,7 +150,7 @@ impl OnlineJudge for AtCoder {
     fn save_cookies(&mut self) -> Result<(), String> {
         if !self.username.is_empty() {
             return CONFIG_DB.save_cookies(
-                Platform::Atcoder,
+                Platform::AtCoder,
                 &self.username,
                 &self.client.save_cookies(),
             );

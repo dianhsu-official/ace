@@ -47,7 +47,7 @@ pub struct Contest {
 #[derive(Serialize, Deserialize, Clone, Copy, Display, Debug)]
 pub enum Platform {
     Codeforces,
-    Atcoder,
+    AtCoder,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
