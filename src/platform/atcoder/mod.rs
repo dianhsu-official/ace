@@ -1,8 +1,8 @@
-use crate::model::{Platform, TestCase};
-use crate::traits::OnlineJudge;
 use crate::database::CONFIG_DB;
 use crate::misc::http_client::HttpClient;
 use crate::model::{Contest, SubmissionInfo};
+use crate::model::{Platform, TestCase};
+use crate::traits::OnlineJudge;
 mod builder;
 mod constants;
 mod parser;
@@ -14,7 +14,7 @@ use self::utility::Utility;
 pub struct AtCoder {
     pub client: HttpClient,
     pub username: String,
-    pub password: String
+    pub password: String,
 }
 impl Drop for AtCoder {
     fn drop(&mut self) {
@@ -159,21 +159,20 @@ impl OnlineJudge for AtCoder {
     }
 }
 impl AtCoder {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, String> {
         let endpoint = String::from("https://atcoder.jp");
         let account_info = match CONFIG_DB.get_default_account(Platform::Codeforces) {
-            Ok(account_info) => Some(account_info),
-            Err(_) => None,
+            Ok(account_info) => account_info,
+            Err(info) => {
+                return Err(info);
+            }
         };
-        match account_info {
-            Some(account_info) => Self::create(
-                &account_info.username,
-                &account_info.password,
-                &account_info.cookies,
-                &endpoint,
-            ),
-            None => Self::create("", "", "", &endpoint),
-        }
+        return Ok(Self::create(
+            &account_info.username,
+            &account_info.password,
+            &account_info.cookies,
+            &endpoint,
+        ));
     }
     pub fn create(username: &str, password: &str, cookies: &str, endpoint: &str) -> Self {
         Self {

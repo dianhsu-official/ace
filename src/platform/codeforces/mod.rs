@@ -216,21 +216,18 @@ impl OnlineJudge for Codeforces {
 }
 
 impl Codeforces {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, String> {
         let endpoint = String::from("https://codeforces.com");
         let account_info = match CONFIG_DB.get_default_account(Platform::Codeforces) {
-            Ok(account_info) => Some(account_info),
-            Err(_) => None,
+            Ok(account_info) => account_info,
+            Err(info) => return Err(info),
         };
-        match account_info {
-            Some(account_info) => Self::create(
-                &account_info.username,
-                &account_info.password,
-                &account_info.cookies,
-                &endpoint,
-            ),
-            None => Self::create("", "", "", &endpoint),
-        }
+        return Ok(Self::create(
+            &account_info.username,
+            &account_info.password,
+            &account_info.cookies,
+            &endpoint,
+        ));
     }
     pub fn create(username: &str, password: &str, cookies: &str, endpoint: &str) -> Self {
         Self {
@@ -284,7 +281,12 @@ impl Codeforces {
 #[ignore = "reason: need login"]
 fn test_login() {
     dotenv::dotenv().ok();
-    let mut cf = Codeforces::new();
+    let mut cf = match Codeforces::new() {
+        Ok(cf) => cf,
+        Err(_) => {
+            return;
+        }
+    };
     let username = dotenv::var("CODEFORCES_USERNAME").unwrap();
     let password = dotenv::var("CODEFORCES_PASSWORD").unwrap();
     let resp = cf.login(&username, &password);

@@ -35,7 +35,12 @@ impl SubmitCommand {
         match submit_info {
             Some(submit_info) => match submit_info.platform {
                 Platform::Codeforces => {
-                    let mut cf = Codeforces::new();
+                    let mut cf = match Codeforces::new() {
+                        Ok(cf) => cf,
+                        Err(info) => {
+                            return Err(info);
+                        }
+                    };
                     return cf.submit(
                         &submit_info.problem_identifier,
                         &submit_info.code,
@@ -43,8 +48,13 @@ impl SubmitCommand {
                     );
                 }
                 Platform::AtCoder => {
-                    let mut ac = AtCoder::new();
-                    return ac.submit(
+                    let mut atc = match AtCoder::new() {
+                        Ok(atc) => atc,
+                        Err(info) => {
+                            return Err(info);
+                        }
+                    };
+                    return atc.submit(
                         &submit_info.problem_identifier,
                         &submit_info.code,
                         &submit_info.language_id,

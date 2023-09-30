@@ -20,7 +20,12 @@ impl ParseCommand {
         };
         let contest_test_cases = match real_platform {
             Platform::Codeforces => {
-                let mut cf = Codeforces::new();
+                let mut cf = match Codeforces::new() {
+                    Ok(cf) => cf,
+                    Err(info) => {
+                        return Err(info);
+                    }
+                };
                 let contest = match cf.get_contest(&args.contest_identifier) {
                     Ok(contest) => contest,
                     Err(info) => {
@@ -50,7 +55,10 @@ impl ParseCommand {
                 }
             }
             Platform::AtCoder => {
-                let mut atc = AtCoder::new();
+                let mut atc = match AtCoder::new() {
+                    Ok(atc) => atc,
+                    Err(info) => return Err(info),
+                };
                 let contest = match atc.get_contest(&args.contest_identifier) {
                     Ok(contest) => contest,
                     Err(info) => {
