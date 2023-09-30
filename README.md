@@ -1,6 +1,8 @@
 # ACE
 > Developing.
 
+[![Rust](https://github.com/dianhsu/ace/actions/workflows/test.yml/badge.svg)](https://github.com/dianhsu/ace/actions/workflows/test.yml)
+
 ACE is a command-line interface tool for Algorithm Contest, just like: Codeforces, Atcoder, etc.
 
 ## Current Progress

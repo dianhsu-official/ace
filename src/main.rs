@@ -2,6 +2,7 @@ mod command;
 mod constants;
 mod context;
 mod database;
+mod logger;
 mod misc;
 mod model;
 mod platform;

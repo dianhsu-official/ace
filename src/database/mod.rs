@@ -6,6 +6,7 @@ use std::process::exit;
 mod account;
 mod config;
 mod language;
+use crate::logger::LOGGER as logger;
 lazy_static! {
     pub static ref CONFIG_DB: ConfigDatabase = ConfigDatabase::new();
 }
@@ -25,23 +26,35 @@ impl ConfigDatabase {
             match sqlite::Connection::open_with_full_mutex(config_path) {
                 Ok(conn) => conn,
                 Err(info) => {
-                    log::error!("{}", info);
+                    logger.error(info.to_string().as_str());
                     exit(1);
                 }
             };
         match connection.execute(INIT_QUERY) {
             Ok(_) => {}
             Err(info) => {
-                log::error!("{}", info);
+                logger.error(info.to_string().as_str());
                 exit(1);
             }
         }
         Self { connection }
     }
     pub fn new() -> Self {
-        let pathbuf = home::home_dir().unwrap();
+        let pathbuf = match home::home_dir() {
+            Some(pathbuf) => pathbuf,
+            None => {
+                logger.error("Cannot get home directory");
+                exit(1);
+            }
+        };
         let config_dir = pathbuf.join(".ace");
-        create_dir_all(&config_dir).unwrap();
+        match create_dir_all(&config_dir) {
+            Ok(_) => {}
+            Err(info) => {
+                logger.error(info.to_string().as_str());
+                exit(1);
+            }
+        }
 
         let binding = config_dir.join("config.sqlite");
         let config_path = binding.as_path();
