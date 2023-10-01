@@ -1,5 +1,7 @@
 use std::path;
 
+use regex::Regex;
+
 use crate::{
     constants::{ProgramLanguage, PLATFORM_MAP},
     database::CONFIG_DB,
@@ -60,6 +62,49 @@ impl Utility {
             }
         };
         return CONFIG_DB.get_program_language_from_suffix(&suffix);
+    }
+    pub fn get_test_cases_filename_from_current_dir() -> Result<Vec<[String; 2]>, String> {
+        let current_path = match std::env::current_dir() {
+            Ok(current_path) => current_path,
+            Err(_) => {
+                return Err("Cannot get current path".to_string());
+            }
+        };
+        let re = Regex::new(r"^(\d+)i.txt$").unwrap();
+        let files = match std::fs::read_dir(current_path.clone()) {
+            Ok(files) => files
+                .into_iter()
+                .filter_map(|x| match x {
+                    Ok(file) => match file.file_name().to_str() {
+                        Some(filename) => {
+                            if re.is_match(filename) {
+                                Some(filename.to_string())
+                            } else {
+                                None
+                            }
+                        }
+                        None => None,
+                    },
+                    Err(_) => None,
+                })
+                .collect::<Vec<_>>(),
+            Err(_) => {
+                return Err("Cannot get current path".to_string());
+            }
+        };
+        let mut test_cases = Vec::new();
+        for input_file in files {
+            let output_file = input_file.replace("i.txt", "o.txt");
+            match std::fs::metadata(output_file.clone()) {
+                Ok(_) => {
+                    test_cases.push([input_file, output_file]);
+                }
+                Err(_) => {
+                    return Err(format!("{} not found", output_file));
+                }
+            }
+        }
+        return Ok(test_cases);
     }
 }
 

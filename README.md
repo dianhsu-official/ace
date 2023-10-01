@@ -34,7 +34,7 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 | ace parse   | get contest info                                  | ✅          |
 | ace gen     | generate code from template                       | ✅          |
 | ace submit  | submit code                                       | ✅          |
-| ace test    | local run test                                    | Pending    |
+| ace test    | local run test                                    | ✅          |
 | *ace race   | start race                                        | Pending    |
 | *ace debug  | start debug file                                  | Scheduling |
 ## Snippets
@@ -43,9 +43,9 @@ You can insert some snippets into your template code or command. When generate a
 
 | snippet         | description                                     | e.g.                          | Capability (code/command) |
 | --------------- | ----------------------------------------------- | ----------------------------- | ------------------------- |
-| `%$platform$%`  | target platform                                 | `codeforces`                  | ✅/⚠️                       |
-| `%$pid$%`       | problem identifier                              | `1848_A`                      | ✅/⚠️                       |
-| `%$cid$%`       | contest identifier                              | `1848`                        | ✅/⚠️                       |
+| `%$platform$%`  | target platform                                 | `codeforces`                  | ✅/️✅                       |
+| `%$pid$%`       | problem identifier                              | `1848_A`                      | ✅/️✅                       |
+| `%$cid$%`       | contest identifier                              | `1848`                        | ✅/️✅                       |
 | `%$workspace$%` | current directory                               | `/home/dianhsu/ace/cf/1848_A` | ✅/✅                       |
 | `%$full$%`      | full name of source file                        | `main.cpp`                    | ✅/✅                       |
 | `%$rand$%`      | ramdom string with 8 character(`^[a-z0-9]{8}$`) | `a1b2c3d4`                    | ✅/✅                       |

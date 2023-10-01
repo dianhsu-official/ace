@@ -5,6 +5,7 @@ mod language;
 pub mod model;
 mod parse;
 mod submit;
+mod test;
 use clap::Parser;
 
 use self::account::AccountCommand;
@@ -43,6 +44,7 @@ impl Cli {
             Commands::Parse(args) => ParseCommand::handle(args),
             Commands::Gen(args) => GenerateCommand::handle(args),
             Commands::Submit(args) => SubmitCommand::handle(args),
+            Commands::Test(args) => test::TestCommand::handle(args),
         };
         match res {
             Ok(res) => {

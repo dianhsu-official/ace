@@ -15,6 +15,9 @@ pub enum Commands {
     Gen(GenerateArgs),
     /// Submit the code
     Submit(SubmitArgs),
+
+    /// Test the code
+    Test(TestArgs),
 }
 
 #[derive(Subcommand)]
@@ -79,5 +82,10 @@ pub struct GenerateArgs {
 
 #[derive(Args)]
 pub struct SubmitArgs {
+    pub filename: Option<String>,
+}
+
+#[derive(Args)]
+pub struct TestArgs {
     pub filename: Option<String>,
 }
