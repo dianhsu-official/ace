@@ -30,7 +30,7 @@ impl OnlineJudge for Codeforces {
     /// Submit code to the platform.  
     ///
     /// problem_identifier: the identifier of the problem.  
-    ///             For example, the identifier of the problem https://codeforces.com/problemset/problem/4/A is 4_A.  
+    ///             For example, the identifier of the problem <https://codeforces.com/problemset/problem/4/A> is 4_A.  
     ///
     /// code: the code to submit.  
     ///

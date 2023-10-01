@@ -97,7 +97,6 @@ impl OnlineJudge for AtCoder {
     }
 
     /// Get test cases from AtCoder
-    /// Success: Vec<[String; 2]> where [0] is input and [1] is output
     fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<TestCase>, String> {
         let vec = problem_identifier.split("_").collect::<Vec<_>>();
         if vec.len() != 2 {
