@@ -19,12 +19,6 @@ impl UrlBuilder {
             contest_identifier
         ));
     }
-    pub fn build_problem_url(contest_identifier: &str, problem_identifier: &str) -> String {
-        return String::from(format!(
-            "https://atcoder.jp/contests/{}/tasks/{}",
-            contest_identifier, problem_identifier
-        ));
-    }
     pub fn build_submit_page_url(contest_identifier: &str) -> String {
         return String::from(format!(
             "https://atcoder.jp/contests/{}/submit",

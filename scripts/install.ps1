@@ -7,7 +7,6 @@ function Get-AceDownloadUrl {
         # TODO: get latest release, currently hardcode to cf-tool v1.0.9
         # Download latest dotnet/codeformatter release from github
 
-        $repo = "dianhsu/ace"
         $file = "ace-${arch}.exe"
 
         $releases = "https://api.github.com/repos/dianhsu/ace/releases"

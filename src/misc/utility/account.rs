@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use chrono::DateTime;
-use inquire::{min_length, MultiSelect, Password, PasswordDisplayMode, Text};
+use inquire::{min_length, Confirm, MultiSelect, Password, PasswordDisplayMode, Text};
 use prettytable::{Cell, Row, Table};
 
 use crate::constants::PLATFORMS;
@@ -39,6 +39,7 @@ impl AccountUtility {
         let password = match Password::new("Enter your password: ")
             .with_display_mode(PasswordDisplayMode::Masked)
             .with_formatter(&|password| "*".repeat(password.len()))
+            .without_confirmation()
             .with_validator(min_length!(1, "Password cannot be empty"))
             .prompt()
         {
@@ -51,6 +52,18 @@ impl AccountUtility {
             Ok(_) => {}
             Err(info) => {
                 return Err(info);
+            }
+        }
+        let set_default = match Confirm::new("Set as default account?").prompt() {
+            Ok(ans) => ans,
+            Err(_) => false,
+        };
+        if set_default {
+            match CONFIG_DB.set_default_account(platform, &username) {
+                Ok(_) => {}
+                Err(info) => {
+                    return Err(info);
+                }
             }
         }
         return Ok(username);

@@ -141,17 +141,8 @@ impl OnlineJudge for Codeforces {
         };
     }
     /// Get test cases
-    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<TestCase>, String> {
-        let info: Vec<&str> = problem_identifier.split("_").collect();
-        if info.len() != 2 {
-            return Err(String::from("Invalid identifier."));
-        }
-        let contest_id = info[0];
-        let problem_id = info[1];
-        let resp = match self
-            .client
-            .get(&UrlBuilder::build_problem_url(contest_id, problem_id))
-        {
+    fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String> {
+        let resp = match self.client.get(problem_url) {
             Ok(resp) => resp,
             Err(err) => {
                 return Err(String::from("Get problem page failed, ") + err.as_str());
@@ -181,7 +172,7 @@ impl OnlineJudge for Codeforces {
         return HtmlParser::parse_submission_page(submission_id, contest_id, problem_id, &resp);
     }
 
-    fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<String>, String> {
+    fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String> {
         let problem_list_url = UrlBuilder::build_problem_list_url(contest_identifier);
         let resp = match self.client.get(&problem_list_url) {
             Ok(resp) => resp,

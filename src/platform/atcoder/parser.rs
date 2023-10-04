@@ -65,7 +65,10 @@ impl HtmlParser {
         };
         return Ok(submission_info);
     }
-    pub fn parse_problem_list(contest_identifier: &str, resp: &str) -> Result<Vec<String>, String> {
+    pub fn parse_problem_list(
+        contest_identifier: &str,
+        resp: &str,
+    ) -> Result<Vec<[String; 2]>, String> {
         let document = Html::parse_document(&resp);
         let tbody_selector = match Selector::parse("tbody") {
             Ok(tbody_selector) => tbody_selector,
@@ -91,6 +94,12 @@ impl HtmlParser {
                 return Err(format!("Failed to parse selector, {}", info));
             }
         };
+        let a_selector = match Selector::parse("a") {
+            Ok(a_selector) => a_selector,
+            Err(info) => {
+                return Err(format!("Failed to parse selector, {}", info));
+            }
+        };
         let tds = tbody
             .select(&trs_selector)
             .map(|x| x.select(&td_selector).next())
@@ -101,11 +110,22 @@ impl HtmlParser {
             match td {
                 Some(td) => {
                     let problem_key = td.text().collect::<String>();
-                    problems.push(format!(
+                    let problem_href = match td.select(&a_selector).next() {
+                        Some(a) => match a.value().attr("href") {
+                            Some(href) => href.to_string(),
+                            None => {
+                                continue;
+                            }
+                        },
+                        None => {
+                            continue;
+                        }
+                    };
+                    problems.push([format!(
                         "{}_{}",
                         contest_identifier,
                         problem_key.to_lowercase()
-                    ));
+                    ), format!("https://atcoder.jp{}", problem_href)]);
                 }
                 None => {
                     continue;

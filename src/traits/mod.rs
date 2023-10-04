@@ -8,8 +8,9 @@ pub trait OnlineJudge {
     ) -> Result<String, String>;
     fn is_login(&mut self) -> Result<String, String>;
     fn login(&mut self, username: &str, password: &str) -> Result<String, String>;
-    fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<String>, String>;
-    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<TestCase>, String>;
+    /// Get all problems in a contest, return a vector of problem identifier and problem url  
+    fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String>;
+    fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String>;
     fn retrive_result(
         &mut self,
         problem_identifier: &str,

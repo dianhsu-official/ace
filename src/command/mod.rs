@@ -7,6 +7,7 @@ mod parse;
 mod submit;
 mod test;
 use clap::Parser;
+use colored::Colorize;
 
 use self::account::AccountCommand;
 use self::config::ConfigCommand;
@@ -48,10 +49,10 @@ impl Cli {
         };
         match res {
             Ok(res) => {
-                println!("{}", res);
+                println!("{}", res.green());
             }
             Err(info) => {
-                println!("{}", info);
+                println!("{}", info.red());
             }
         }
         return Ok(());

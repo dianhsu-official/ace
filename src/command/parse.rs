@@ -34,19 +34,20 @@ impl ParseCommand {
                 };
                 let mut contest_test_cases = Vec::new();
                 if contest.status != ContestStatus::NotStarted {
-                    let problem_identifiers = match cf.get_problems(&args.contest_identifier) {
-                        Ok(problem_identifiers) => problem_identifiers,
+                    let problem_infos = match cf.get_problems(&args.contest_identifier) {
+                        Ok(problem_infos) => problem_infos,
                         Err(info) => {
                             return Err(info);
                         }
                     };
-                    for problem_identifier in problem_identifiers {
-                        let test_cases = match cf.get_test_cases(&problem_identifier) {
+                    for problem_info in problem_infos {
+                        let test_cases = match cf.get_test_cases(&problem_info[1]) {
                             Ok(test_cases) => test_cases,
                             Err(info) => {
                                 return Err(info);
                             }
                         };
+                        let problem_identifier = problem_info[0].clone();
                         contest_test_cases.push((problem_identifier, test_cases));
                     }
                     contest_test_cases
@@ -67,19 +68,20 @@ impl ParseCommand {
                 };
                 let mut contest_test_cases = Vec::new();
                 if contest.status != ContestStatus::NotStarted {
-                    let problem_identifiers = match atc.get_problems(&args.contest_identifier) {
-                        Ok(problem_identifiers) => problem_identifiers,
+                    let problem_infos = match atc.get_problems(&args.contest_identifier) {
+                        Ok(problem_infos) => problem_infos,
                         Err(info) => {
                             return Err(info);
                         }
                     };
-                    for problem_identifier in problem_identifiers {
-                        let test_cases = match atc.get_test_cases(&problem_identifier) {
+                    for problem_info in problem_infos {
+                        let test_cases = match atc.get_test_cases(&problem_info[1]) {
                             Ok(test_cases) => test_cases,
                             Err(info) => {
                                 return Err(info);
                             }
                         };
+                        let problem_identifier = problem_info[0].clone();
                         contest_test_cases.push((problem_identifier, test_cases));
                     }
                     contest_test_cases

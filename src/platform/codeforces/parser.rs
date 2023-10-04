@@ -98,7 +98,10 @@ impl HtmlParser {
         }
         return Ok(contest);
     }
-    pub fn parse_problem_list(contest_identifier: &str, resp: &str) -> Result<Vec<String>, String> {
+    pub fn parse_problem_list(
+        contest_identifier: &str,
+        resp: &str,
+    ) -> Result<Vec<[String; 2]>, String> {
         let mut problems = Vec::new();
         let tr_selector = match Selector::parse(r#"table[class="problems"] tr"#) {
             Ok(tr_selector) => tr_selector,
@@ -113,12 +116,32 @@ impl HtmlParser {
                 return Err(String::from("Parse problem list failed."));
             }
         };
+        let a_selector = match Selector::parse("a") {
+            Ok(a_selector) => a_selector,
+            Err(_) => {
+                return Err(String::from("Parse problem list failed."));
+            }
+        };
         for td in document
             .select(&tr_selector)
             .filter_map(|x| x.select(&td_selector).next())
         {
             let problem_key = td.text().collect::<String>();
-            problems.push(format!("{}_{}", contest_identifier, problem_key.trim()));
+            let problem_url = match td.select(&a_selector).next() {
+                Some(problem_anchor) => match problem_anchor.value().attr("href") {
+                    Some(problem_url) => problem_url.to_string(),
+                    None => {
+                        continue;
+                    }
+                },
+                None => {
+                    continue;
+                }
+            };
+            problems.push([
+                format!("{}_{}", contest_identifier, problem_key.trim()),
+                format!("https://codeforces.com{}", problem_url),
+            ]);
         }
         return Ok(problems);
     }
@@ -213,7 +236,7 @@ impl HtmlParser {
             }
             if input.len() == 0 {
                 input.push_str(input_test_case.text().collect::<String>().as_str());
-            }else{
+            } else {
                 input.push('\n');
             }
             input_vec.push(input);
@@ -229,7 +252,7 @@ impl HtmlParser {
             }
             if output.len() == 0 {
                 output.push_str(output_test_case.text().collect::<String>().as_str());
-            }else{
+            } else {
                 output.push('\n');
             }
             output_vec.push(output);
@@ -242,7 +265,7 @@ impl HtmlParser {
             ));
         }
         for i in 0..input_vec.len() {
-            res.push(TestCase{
+            res.push(TestCase {
                 input: input_vec[i].clone(),
                 output: output_vec[i].clone(),
             });

@@ -17,12 +17,6 @@ impl UrlBuilder {
     pub fn build_contest_url(contest_identifier: &str) -> String {
         return format!("https://codeforces.com/contests/{}", contest_identifier);
     }
-    pub fn build_problem_url(contest_id: &str, problem_id: &str) -> String {
-        return format!(
-            "https://codeforces.com/contest/{}/problem/{}",
-            contest_id, problem_id
-        );
-    }
     pub fn build_login_url() -> String {
         return String::from("https://codeforces.com/enter");
     }

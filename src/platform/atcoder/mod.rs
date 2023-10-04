@@ -97,13 +97,7 @@ impl OnlineJudge for AtCoder {
     }
 
     /// Get test cases from AtCoder
-    fn get_test_cases(&mut self, problem_identifier: &str) -> Result<Vec<TestCase>, String> {
-        let vec = problem_identifier.split("_").collect::<Vec<_>>();
-        if vec.len() != 2 {
-            return Err(String::from("Invalid problem identifier."));
-        }
-        let contest_identifier = vec[0];
-        let problem_url = UrlBuilder::build_problem_url(contest_identifier, problem_identifier);
+    fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String> {
         let resp = match self.client.get(&problem_url) {
             Ok(resp) => resp,
             Err(info) => return Err(info),
@@ -128,7 +122,7 @@ impl OnlineJudge for AtCoder {
         return HtmlParser::parse_submission_page(problem_identifier, submission_id, &resp);
     }
 
-    fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<String>, String> {
+    fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String> {
         let problem_list_url = UrlBuilder::build_problem_list_url(contest_identifier);
         let resp = match self.client.get(&problem_list_url) {
             Ok(resp) => resp,
