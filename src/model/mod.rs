@@ -1,7 +1,9 @@
 use chrono::{DateTime, Utc};
+use clap::ValueEnum;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use strum_macros::Display;
+use strum_macros::EnumString;
 #[derive(Debug, PartialEq)]
 pub enum Verdict {
     Waiting = 0,  // Waiting for judge or judge in progress
@@ -44,7 +46,7 @@ pub struct Contest {
     pub status: ContestStatus,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Display, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, Display, Debug, EnumString)]
 pub enum Platform {
     Codeforces,
     AtCoder,
@@ -52,7 +54,12 @@ pub enum Platform {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LanguageConfig {
+    pub alias: String,
     pub suffix: String,
+    pub platform: Platform,
+    pub key: String,
+    pub submit_language_id: String,
+    pub submit_language_description: String,
     pub template_path: String,
     pub compile_command: String,
     pub execute_command: String,

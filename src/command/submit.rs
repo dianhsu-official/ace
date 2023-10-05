@@ -209,10 +209,13 @@ impl SubmitCommand {
         language: ProgramLanguage,
         platform: Platform,
     ) -> Result<String, String> {
-        let language_ext = match CONFIG_DB.get_language_platform_submit_lang_id(language) {
-            Ok(language_ext) => language_ext,
+        let language_configs = match CONFIG_DB.get_language_platform_config(language, platform) {
+            Ok(language_configs) => language_configs,
             Err(info) => return Err(info),
         };
+        if language_configs.len() == 0 {
+            return Err("Please set language config first.".to_string());
+        }
         match platform {
             Platform::Codeforces => match language_ext.codeforces {
                 Some(language_id) => {
