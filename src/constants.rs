@@ -20,7 +20,7 @@ lazy_static! {
     ]);
 }
 #[allow(dead_code)]
-#[derive(Debug, EnumIter, Display, Copy, Clone, ValueEnum, EnumString, Serialize, Deserialize)]
+#[derive(Debug, EnumIter, Display, Copy, Clone, ValueEnum, EnumString, Serialize, Deserialize, PartialEq)]
 pub enum ProgramLanguage {
     C,
     Cpp,

@@ -36,7 +36,13 @@ impl SubmitCommand {
                         .into_iter()
                         .filter_map(|x| match x {
                             Ok(file) => match file.file_name().to_str() {
-                                Some(filename) => Some(filename.to_string()),
+                                Some(filename) => {
+                                    if filename.starts_with("code.") {
+                                        Some(filename.to_string())
+                                    } else {
+                                        None
+                                    }
+                                }
                                 None => None,
                             },
                             Err(_) => None,
@@ -48,7 +54,8 @@ impl SubmitCommand {
                 };
                 let filename = match Select::new("Select file to ", files).prompt() {
                     Ok(filename) => filename,
-                    Err(_) => {
+                    Err(info) => {
+                        log::error!("{}", info);
                         return Err("Cannot get current path".to_string());
                     }
                 };
@@ -58,7 +65,10 @@ impl SubmitCommand {
         let submit_info = match current_dir.join(filename.clone()).to_str() {
             Some(file_path) => match Self::get_submit_info(&filename, file_path) {
                 Ok(submit_info) => Some(submit_info),
-                Err(_) => None,
+                Err(info) => {
+                    log::error!("{}", info);
+                    return Err(info);
+                }
             },
             None => None,
         };
@@ -121,6 +131,7 @@ impl SubmitCommand {
                     ) {
                         Ok(submission_id) => submission_id,
                         Err(info) => {
+                            log::error!("{}", info);
                             return Err(info);
                         }
                     };
@@ -159,21 +170,8 @@ impl SubmitCommand {
 }
 impl SubmitCommand {
     fn get_submit_info(filename: &str, file_path: &str) -> Result<SubmitInfo, String> {
-        let _ = filename;
-        let _ = file_path;
-        let workspace = match current_dir() {
-            Ok(current_path) => match current_path.to_str() {
-                Some(current_path) => current_path.to_string(),
-                None => {
-                    return Err("Cannot get current path".to_string());
-                }
-            },
-            Err(_) => {
-                return Err("Cannot get current path".to_string());
-            }
-        };
-        let language = match Utility::get_program_language_from_filename(filename) {
-            Ok(language) => language,
+        let workspace = match CONFIG_DB.get_config("workspace") {
+            Ok(workspace) => workspace,
             Err(info) => {
                 return Err(info);
             }
@@ -185,6 +183,12 @@ impl SubmitCommand {
                     return Err(info);
                 }
             };
+        let language = match Utility::get_program_language_from_filename(filename) {
+            Ok(language) => language,
+            Err(info) => {
+                return Err(info);
+            }
+        };
         let language_id = match SubmitCommand::get_submit_language_id(language, platform) {
             Ok(language_id) => language_id,
             Err(info) => {
@@ -215,7 +219,10 @@ impl SubmitCommand {
         };
         match language_configs.len() {
             0 => {
-                return Err("Cannot get language id".to_string());
+                return Err(format!(
+                    "No language config set for {}, please set language first.",
+                    platform
+                ));
             }
             1 => {
                 return Ok(language_configs[0].submit_id.clone());
@@ -227,12 +234,12 @@ impl SubmitCommand {
                     .collect::<Vec<_>>();
                 let language_id = match Select::new("Select language id", language_ids).prompt() {
                     Ok(language_id) => language_id,
-                    Err(_) => {
-                        return Err("Cannot get language id".to_string());
+                    Err(info) => {
+                        return Err(info.to_string());
                     }
                 };
                 return Ok(language_id);
-            }   
+            }
         }
     }
 }

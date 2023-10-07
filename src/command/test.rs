@@ -2,8 +2,8 @@ use inquire::Select;
 
 use crate::context::CONTEXT;
 use crate::database::CONFIG_DB;
-use crate::logger::LOGGER;
 use crate::misc::utility::Utility;
+use crate::platform;
 use crate::snippet::Snippet;
 
 use super::model::TestArgs;
@@ -163,7 +163,6 @@ impl TestCommand {
                 }
             };
             if cfg!(target_os = "windows") {
-                LOGGER.info(&format!("run command: powershell -c {}", execute_command));
                 let command = Command::new("powershell")
                     .args(["-c", execute_command])
                     .stdin(Stdio::piped())
@@ -199,7 +198,6 @@ impl TestCommand {
                     }
                 }
             } else {
-                LOGGER.info(&format!("run command: sh -c {}", execute_command));
                 let command = Command::new("sh")
                     .args(["-c", execute_command])
                     .stdin(Stdio::piped())

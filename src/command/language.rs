@@ -60,7 +60,7 @@ impl LanguageCommand {
                         Ok(value) => value,
                         Err(_) => String::from(""),
                     };
-                let execute_command = match Text::new("Enter the execute command: ").prompt() {
+                let execute_command = match Text::new("Enter the execute command (allow empty): ").prompt() {
                     Ok(value) => value,
                     Err(_) => String::from(""),
                 };
@@ -79,9 +79,13 @@ impl LanguageCommand {
                     Platform::AtCoder => AtCoder::get_platform_languages(),
                     Platform::Codeforces => Codeforces::get_platform_languages(),
                 };
+                let filtered_submit_language_infos = submit_language_infos
+                    .iter()
+                    .filter(|info| info.language == language_identifier)
+                    .collect::<Vec<_>>();
                 let submit_languge_info = match Select::new(
                     "Select exact language to submit code:",
-                    submit_language_infos,
+                    filtered_submit_language_infos,
                 )
                 .prompt()
                 {
@@ -102,28 +106,9 @@ impl LanguageCommand {
                     &execute_command,
                     &clear_command,
                 ) {
-                    Ok(_) => {}
-                    Err(info) => return Err(info),
-                };
-                let set_default = match Select::new(
-                    "Do you want to set this language as default?",
-                    vec!["Yes", "No"],
-                )
-                .prompt()
-                {
-                    Ok(ans) => ans,
-                    Err(_) => {
-                        return Err("Set default failed".to_string());
-                    }
-                };
-                if set_default == "Yes" {
-                    match CONFIG_DB.set_config("language", language_identifier.to_string().as_str())
-                    {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    }
+                    Ok(_) => Ok(String::from("Set language config success")),
+                    Err(info) => Err(info),
                 }
-                return Ok(String::from("Set language config success"));
             }
         }
     }

@@ -30,6 +30,7 @@ impl OnlineJudge for AtCoder {
         lang_id: &str,
     ) -> Result<String, String> {
         let vec = problem_identifier.split("_").collect::<Vec<_>>();
+        log::info!("vec: {:?}", vec);
         if vec.len() != 2 {
             return Err(String::from("Invalid problem identifier."));
         }
@@ -161,13 +162,13 @@ impl OnlineJudge for AtCoder {
                 description: String::from(*description),
             });
         }
-        todo!()
+        return vec;
     }
 }
 impl AtCoder {
     pub fn new() -> Result<Self, String> {
         let endpoint = String::from("https://atcoder.jp");
-        let account_info = match CONFIG_DB.get_default_account(Platform::Codeforces) {
+        let account_info = match CONFIG_DB.get_default_account(Platform::AtCoder) {
             Ok(account_info) => account_info,
             Err(info) => {
                 return Err(info);

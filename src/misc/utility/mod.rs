@@ -1,9 +1,11 @@
 use std::path;
 
+use inquire::Select;
+
 use crate::{
     constants::{ProgramLanguage, PLATFORM_MAP},
     database::CONFIG_DB,
-    model::Platform,
+    model::Platform, platform,
 };
 
 pub mod account;
@@ -38,8 +40,11 @@ impl Utility {
                 return Some(x);
             })
             .collect::<Vec<_>>();
-        if path_vec.len() < 2 {
-            return Err("invalid path".to_string());
+        if path_vec.len() < 4 {
+            return Err(format!(
+                "invalid path: {}, current_path: {}, workspace: {}",
+                relative_path, cur_path, workspace
+            ));
         } else {
             let platform = match PLATFORM_MAP.get(path_vec[0].to_lowercase().as_str()) {
                 Some(platform) => platform,
@@ -59,7 +64,24 @@ impl Utility {
                 return Err("invalid filename".to_string());
             }
         };
-        return CONFIG_DB.get_program_language_from_suffix(&suffix);
+        let vec = match CONFIG_DB.get_language_submit_config_from_suffix(&suffix) {
+            Ok(vec) => vec,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        match vec.len() {
+            0 => {
+                return Err(format!("cannot find language from suffix: {}", suffix));
+            }
+            1 => {
+                return Ok(vec[0].identifier.clone());
+            }
+            _ => {
+                let item = Select::new("Select language", vec).prompt().unwrap();
+                return Ok(item.identifier);
+            }
+        }
     }
     pub fn get_test_cases_filename_from_current_location() -> Result<Vec<[String; 2]>, String> {
         let current_path = match std::env::current_dir() {

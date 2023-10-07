@@ -122,8 +122,8 @@ impl Display for PlatformLanguage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}({}, {})",
-            self.language, self.platform, self.description
+            "{}",
+            self.description
         )
     }
 }
