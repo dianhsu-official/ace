@@ -140,7 +140,7 @@ impl TestCommand {
         if let Err(info) = Self::run_no_input_command(compile_command) {
             return Err(info);
         }
-        let test_cases = match Utility::get_test_cases_filename_from_current_dir() {
+        let test_cases = match Utility::get_test_cases_filename_from_current_location() {
             Ok(test_cases) => test_cases,
             Err(info) => {
                 return Err(info);

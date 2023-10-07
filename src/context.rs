@@ -28,7 +28,7 @@ impl Context {
     }
     pub fn update(&mut self, cur_path: &str) {
         if let Ok(workspace) = CONFIG_DB.get_config("workspace") {
-            match Utility::get_indentifiers(cur_path, &workspace) {
+            match Utility::get_identifiers_from_currrent_location(cur_path, &workspace) {
                 Ok(res) => {
                     self.platform = Some(res.0);
                     self.contest_identifier = Some(res.1);

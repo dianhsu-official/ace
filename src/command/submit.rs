@@ -179,7 +179,7 @@ impl SubmitCommand {
             }
         };
         let (platform, problem_identifier, contest_identifier) =
-            match Utility::get_indentifiers(file_path, &workspace) {
+            match Utility::get_identifiers_from_currrent_location(file_path, &workspace) {
                 Ok(resp) => resp,
                 Err(info) => {
                     return Err(info);
@@ -213,26 +213,26 @@ impl SubmitCommand {
             Ok(language_configs) => language_configs,
             Err(info) => return Err(info),
         };
-        if language_configs.len() == 0 {
-            return Err("Please set language config first.".to_string());
-        }
-        match platform {
-            Platform::Codeforces => match language_ext.codeforces {
-                Some(language_id) => {
-                    return Ok(language_id);
-                }
-                None => {
-                    return Err("Please set language config for codeforces first.".to_string());
-                }
-            },
-            Platform::AtCoder => match language_ext.atcoder {
-                Some(language_id) => {
-                    return Ok(language_id);
-                }
-                None => {
-                    return Err("Please set language config for atcoder first.".to_string());
-                }
-            },
+        match language_configs.len() {
+            0 => {
+                return Err("Cannot get language id".to_string());
+            }
+            1 => {
+                return Ok(language_configs[0].submit_id.clone());
+            }
+            _ => {
+                let language_ids = language_configs
+                    .iter()
+                    .map(|x| x.submit_id.clone())
+                    .collect::<Vec<_>>();
+                let language_id = match Select::new("Select language id", language_ids).prompt() {
+                    Ok(language_id) => language_id,
+                    Err(_) => {
+                        return Err("Cannot get language id".to_string());
+                    }
+                };
+                return Ok(language_id);
+            }   
         }
     }
 }

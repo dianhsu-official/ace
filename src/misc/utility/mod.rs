@@ -18,7 +18,7 @@ impl Utility {
     /// * `cur_path` - Current path.
     /// # Returns
     /// * `Ok((Platform, String, String))` - Platform, contest identifier and contest problem identifier(e.g. [a, b, c, d, e]).
-    pub fn get_indentifiers(
+    pub fn get_identifiers_from_currrent_location(
         cur_path: &str,
         workspace: &str,
     ) -> Result<(Platform, String, String), String> {
@@ -63,7 +63,7 @@ impl Utility {
         };
         return CONFIG_DB.get_program_language_from_suffix(&suffix);
     }
-    pub fn get_test_cases_filename_from_current_dir() -> Result<Vec<[String; 2]>, String> {
+    pub fn get_test_cases_filename_from_current_location() -> Result<Vec<[String; 2]>, String> {
         let current_path = match std::env::current_dir() {
             Ok(current_path) => current_path,
             Err(_) => {
@@ -119,6 +119,6 @@ fn test_get_indentifiers() {
     #[cfg(not(target_os = "windows"))]
     let workspace = r#"/home/dianhsu/workspace"#;
 
-    let res = Utility::get_indentifiers(cur_path, workspace);
+    let res = Utility::get_identifiers_from_currrent_location(cur_path, workspace);
     assert_eq!(res.is_ok(), true);
 }

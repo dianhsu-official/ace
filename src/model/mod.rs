@@ -1,9 +1,12 @@
+use std::fmt::Display;
+
 use chrono::{DateTime, Utc};
-use clap::ValueEnum;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use strum_macros::Display;
 use strum_macros::EnumString;
+
+use crate::constants::ProgramLanguage;
 #[derive(Debug, PartialEq)]
 pub enum Verdict {
     Waiting = 0,  // Waiting for judge or judge in progress
@@ -52,18 +55,46 @@ pub enum Platform {
     AtCoder,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LanguageSubmitConfig {
+    pub alias: String,
+    pub suffix: String,
+    pub platform: Platform,
+    pub identifier: ProgramLanguage,
+    pub submit_id: String,
+    pub submit_description: String,
+}
+
+impl Display for LanguageSubmitConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}({}, {}, {})",
+            self.alias, self.suffix, self.identifier, self.submit_description
+        )
+    }
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LanguageConfig {
     pub alias: String,
     pub suffix: String,
     pub platform: Platform,
-    pub key: String,
-    pub submit_language_id: String,
-    pub submit_language_description: String,
+    pub identifier: ProgramLanguage,
+    pub submit_id: String,
+    pub submit_description: String,
     pub template_path: String,
     pub compile_command: String,
     pub execute_command: String,
     pub clear_command: String,
+}
+impl Display for LanguageConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}({}, {}, {})",
+            self.alias, self.suffix, self.identifier, self.submit_description
+        )
+    }
 }
 
 pub struct AccountInfo {
