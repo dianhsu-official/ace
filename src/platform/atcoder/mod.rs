@@ -4,7 +4,6 @@ use crate::model::{Contest, SubmissionInfo};
 use crate::model::{Platform, TestCase};
 use crate::traits::OnlineJudge;
 mod builder;
-mod constants;
 mod parser;
 mod utility;
 use builder::UrlBuilder;
@@ -149,6 +148,10 @@ impl OnlineJudge for AtCoder {
             );
         }
         return Ok(());
+    }
+
+    fn get_submit_languages(&mut self) -> Result<Vec<crate::model::SubmitLanguageInfo>, String> {
+        todo!()
     }
 }
 impl AtCoder {

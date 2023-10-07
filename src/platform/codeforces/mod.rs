@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 mod builder;
-mod constants;
 mod parser;
 mod utility;
 use crate::database::CONFIG_DB;
@@ -203,6 +202,10 @@ impl OnlineJudge for Codeforces {
             );
         }
         return Ok(());
+    }
+
+    fn get_submit_languages(&mut self) -> Result<Vec<crate::model::SubmitLanguageInfo>, String> {
+        todo!()
     }
 }
 

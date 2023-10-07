@@ -1,4 +1,4 @@
-use crate::model::{Contest, SubmissionInfo, TestCase};
+use crate::model::{Contest, SubmissionInfo, TestCase, SubmitLanguageInfo};
 pub trait OnlineJudge {
     fn submit(
         &mut self,
@@ -18,4 +18,5 @@ pub trait OnlineJudge {
     ) -> Result<SubmissionInfo, String>;
     fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String>;
     fn save_cookies(&mut self) -> Result<(), String>;
+    fn get_submit_languages(&mut self) -> Result<Vec<SubmitLanguageInfo>, String>;
 }

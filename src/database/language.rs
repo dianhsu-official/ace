@@ -1,5 +1,4 @@
 use inquire::Select;
-use prettytable::{Cell, Row, Table};
 
 use super::ConfigDatabase;
 use crate::constants::ProgramLanguage;
@@ -207,94 +206,63 @@ impl ConfigDatabase {
         }
     }
     pub fn list_lang_config(&self) -> Result<(), String> {
-        let query = format!("SELECT alias, key, platform, suffix, template_path, compile_command, execute_command, clear_command FROM language");
-        let stmt = match self.connection.prepare(query) {
-            Ok(stmt) => stmt,
-            Err(info) => {
-                return Err(info.to_string());
-            }
-        };
-        let mut table: Table = Table::new();
-        table.add_row(Row::new(vec![
-            Cell::new("alias"),
-            Cell::new("key"),
-            Cell::new("platform"),
-            Cell::new("suffix"),
-            Cell::new("template_path"),
-            Cell::new("compile_command"),
-            Cell::new("execute_command"),
-            Cell::new("clear_command"),
-        ]));
-        for row in stmt.into_iter().filter_map(|row| match row {
-            Ok(row) => Some(row),
-            Err(_) => None,
-        }) {
-            let alias = row.read::<&str, _>("alias").to_string();
-            let key = row.read::<&str, _>("key").to_string();
-            let platform_str = row.read::<&str, _>("platform").to_string();
-            let suffix = row.read::<&str, _>("suffix").to_string();
-            let template_path = row.read::<&str, _>("template_path").to_string();
-            let compile_command = row.read::<&str, _>("compile_command").to_string();
-            let execute_command = row.read::<&str, _>("execute_command").to_string();
-            let clear_command = row.read::<&str, _>("clear_command").to_string();
-
-            table.add_row(Row::new(vec![
-                Cell::new(alias.as_str()),
-                Cell::new(key.as_str()),
-                Cell::new(platform_str.as_str()),
-                Cell::new(suffix.as_str()),
-                Cell::new(template_path.as_str()),
-                Cell::new(compile_command.as_str()),
-                Cell::new(execute_command.as_str()),
-                Cell::new(clear_command.as_str()),
-            ]));
-        }
-        table.printstd();
-        return Ok(());
+        todo!()
     }
     pub fn set_lang_config(
         &self,
-        lang: ProgramLanguage,
+        alias: &str,
         suffix: &str,
+        platform: Platform,
+        language_identifier: ProgramLanguage,
+        submit_id: &str,
+        submit_description: &str,
         template_path: &str,
         compile_command: &str,
         execute_command: &str,
         clear_command: &str,
     ) -> Result<(), String> {
-        let query = format!("INSERT OR REPLACE INTO language (name, suffix, template_path, compile_command, execute_command, clear_command) VALUES (?, ?, ?, ?, ?, ?)");
+        let query = String::from("INSERT OR REPLACE INTO language (alias, suffix, platform, identifier, submit_id, submit_description, template_path, compile_command, execute_command, clear_command) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
-            Err(info) => return Err(info.to_string()),
-        };
-        let name = lang.to_string();
-        match stmt.bind((1, name.as_str())) {
-            Ok(_) => {}
             Err(info) => {
                 return Err(info.to_string());
             }
         };
+        if let Err(info) = stmt.bind((1, alias)) {
+            return Err(info.to_string());
+        }
         if let Err(info) = stmt.bind((2, suffix)) {
             return Err(info.to_string());
         }
-        if let Err(info) = stmt.bind((3, template_path)) {
+        let platform_str = platform.to_string();
+        if let Err(info) = stmt.bind((3, platform_str.as_str())) {
             return Err(info.to_string());
         }
-        if let Err(info) = stmt.bind((4, compile_command)) {
+        let language_str = language_identifier.to_string();
+        if let Err(info) = stmt.bind((4, language_str.as_str())) {
             return Err(info.to_string());
         }
-        if let Err(info) = stmt.bind((5, execute_command)) {
+        if let Err(info) = stmt.bind((5, submit_id)) {
             return Err(info.to_string());
         }
-        if let Err(info) = stmt.bind((6, clear_command)) {
+        if let Err(info) = stmt.bind((6, submit_description)) {
             return Err(info.to_string());
         }
-        match stmt.next() {
-            Ok(_) => {
-                return Ok(());
-            }
-            Err(info) => {
-                return Err(info.to_string());
-            }
+        if let Err(info) = stmt.bind((7, template_path)) {
+            return Err(info.to_string());
+        }
+        if let Err(info) = stmt.bind((8, compile_command)) {
+            return Err(info.to_string());
+        }
+        if let Err(info) = stmt.bind((9, execute_command)) {
+            return Err(info.to_string());
+        }
+        if let Err(info) = stmt.bind((10, clear_command)) {
+            return Err(info.to_string());
+        }
+        return match stmt.next() {
+            Ok(_) => Ok(()),
+            Err(info) => Err(info.to_string()),
         };
     }
 }

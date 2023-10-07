@@ -1,9 +1,9 @@
-use std::fmt::Display;
-
 use chrono::{DateTime, Utc};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
+use std::fmt::Display;
 use strum_macros::Display;
+use strum_macros::EnumIter;
 use strum_macros::EnumString;
 
 use crate::constants::ProgramLanguage;
@@ -49,7 +49,7 @@ pub struct Contest {
     pub status: ContestStatus,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Display, Debug, EnumString)]
+#[derive(Serialize, Deserialize, Clone, Copy, Display, Debug, EnumString, EnumIter)]
 pub enum Platform {
     Codeforces,
     AtCoder,
@@ -108,4 +108,22 @@ pub struct AccountInfo {
 pub struct TestCase {
     pub input: String,
     pub output: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SubmitLanguageInfo {
+    pub language: ProgramLanguage,
+    pub platform: Platform,
+    pub id: String,
+    pub description: String,
+}
+
+impl Display for SubmitLanguageInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}({}, {})",
+            self.language, self.platform, self.description
+        )
+    }
 }

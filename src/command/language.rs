@@ -2,7 +2,11 @@ use inquire::{Select, Text};
 use strum::IntoEnumIterator;
 
 use super::model::LanguageArgs;
-use crate::{command::model::LanguageOptions, constants::ProgramLanguage, database::CONFIG_DB};
+use crate::{
+    command::model::LanguageOptions, constants::ProgramLanguage, database::CONFIG_DB,
+    model::Platform, platform::atcoder::AtCoder, platform::codeforces::Codeforces,
+    traits::OnlineJudge,
+};
 pub struct LanguageCommand {}
 
 impl LanguageCommand {
@@ -18,7 +22,7 @@ impl LanguageCommand {
             },
             LanguageOptions::Set => {
                 let languages: Vec<ProgramLanguage> = ProgramLanguage::iter().collect::<Vec<_>>();
-                let lang = match Select::new(
+                let language_identifier = match Select::new(
                     "Choose a language to set compile and execute command:",
                     languages,
                 )
@@ -35,6 +39,17 @@ impl LanguageCommand {
                         return Err("Suffix cannot be empty".to_string());
                     }
                 };
+                let platform = match Select::new(
+                    "Choose a platform to set language:",
+                    Platform::iter().collect::<Vec<_>>(),
+                )
+                .prompt()
+                {
+                    Ok(ans) => ans,
+                    Err(info) => {
+                        return Err(info.to_string());
+                    }
+                };
                 let template_path =
                     match Text::new("Enter the template path (allow empty): ").prompt() {
                         Ok(value) => value,
@@ -47,18 +62,46 @@ impl LanguageCommand {
                     };
                 let execute_command = match Text::new("Enter the execute command: ").prompt() {
                     Ok(value) => value,
-                    Err(_) => {
-                        return Err("Execute command cannot be empty".to_string());
-                    }
+                    Err(_) => String::from(""),
                 };
                 let clear_command =
                     match Text::new("Enter the clear command (allow empty): ").prompt() {
                         Ok(value) => value,
                         Err(_) => String::from(""),
                     };
+                let alias = match Text::new("Enter the alias: ").prompt() {
+                    Ok(value) => value,
+                    Err(_) => {
+                        return Err("Alias cannot be empty".to_string());
+                    }
+                };
+                let submit_language_infos = match match platform {
+                    Platform::AtCoder => AtCoder::new().unwrap().get_submit_languages(),
+                    Platform::Codeforces => Codeforces::new().unwrap().get_submit_languages(),
+                } {
+                    Ok(submit_language_infos) => submit_language_infos,
+                    Err(info) => {
+                        return Err(info);
+                    }
+                };
+                let submit_languge_info = match Select::new(
+                    "Select exact language to submit code:",
+                    submit_language_infos,
+                )
+                .prompt()
+                {
+                    Ok(submit_language_info) => submit_language_info,
+                    Err(info) => {
+                        return Err(info.to_string());
+                    }
+                };
                 match CONFIG_DB.set_lang_config(
-                    lang,
+                    &alias,
                     &suffix,
+                    platform,
+                    language_identifier,
+                    &submit_languge_info.id,
+                    &submit_languge_info.description,
                     &template_path,
                     &compile_command,
                     &execute_command,
@@ -79,7 +122,8 @@ impl LanguageCommand {
                     }
                 };
                 if set_default == "Yes" {
-                    match CONFIG_DB.set_config("language", lang.to_string().as_str()) {
+                    match CONFIG_DB.set_config("language", language_identifier.to_string().as_str())
+                    {
                         Ok(_) => {}
                         Err(_) => {}
                     }
