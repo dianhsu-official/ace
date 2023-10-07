@@ -1,9 +1,11 @@
 use crate::database::CONFIG_DB;
 use crate::misc::http_client::HttpClient;
+use crate::model::PlatformLanguage;
 use crate::model::{Contest, SubmissionInfo};
 use crate::model::{Platform, TestCase};
 use crate::traits::OnlineJudge;
 mod builder;
+mod constants;
 mod parser;
 mod utility;
 use builder::UrlBuilder;
@@ -149,8 +151,16 @@ impl OnlineJudge for AtCoder {
         }
         return Ok(());
     }
-
-    fn get_submit_languages(&mut self) -> Result<Vec<crate::model::SubmitLanguageInfo>, String> {
+    fn get_platform_languages() -> Vec<PlatformLanguage> {
+        let mut vec = Vec::new();
+        for (id, description, language) in constants::LANG.iter() {
+            vec.push(PlatformLanguage {
+                language: *language,
+                platform: Platform::AtCoder,
+                id: String::from(*id),
+                description: String::from(*description),
+            });
+        }
         todo!()
     }
 }

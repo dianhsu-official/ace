@@ -111,14 +111,14 @@ pub struct TestCase {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SubmitLanguageInfo {
+pub struct PlatformLanguage {
     pub language: ProgramLanguage,
     pub platform: Platform,
     pub id: String,
     pub description: String,
 }
 
-impl Display for SubmitLanguageInfo {
+impl Display for PlatformLanguage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

@@ -75,14 +75,9 @@ impl LanguageCommand {
                         return Err("Alias cannot be empty".to_string());
                     }
                 };
-                let submit_language_infos = match match platform {
-                    Platform::AtCoder => AtCoder::new().unwrap().get_submit_languages(),
-                    Platform::Codeforces => Codeforces::new().unwrap().get_submit_languages(),
-                } {
-                    Ok(submit_language_infos) => submit_language_infos,
-                    Err(info) => {
-                        return Err(info);
-                    }
+                let submit_language_infos = match platform {
+                    Platform::AtCoder => AtCoder::get_platform_languages(),
+                    Platform::Codeforces => Codeforces::get_platform_languages(),
                 };
                 let submit_languge_info = match Select::new(
                     "Select exact language to submit code:",

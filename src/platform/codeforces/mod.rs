@@ -2,6 +2,7 @@ use std::collections::HashMap;
 mod builder;
 mod parser;
 mod utility;
+mod constants;
 use crate::database::CONFIG_DB;
 use crate::misc::http_client::HttpClient;
 use crate::model::Contest;
@@ -9,6 +10,7 @@ use crate::model::Platform;
 use crate::model::SubmissionInfo;
 use crate::model::TestCase;
 use crate::traits::OnlineJudge;
+use crate::model::PlatformLanguage;
 use builder::UrlBuilder;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
 use regex::Regex;
@@ -204,8 +206,17 @@ impl OnlineJudge for Codeforces {
         return Ok(());
     }
 
-    fn get_submit_languages(&mut self) -> Result<Vec<crate::model::SubmitLanguageInfo>, String> {
-        todo!()
+    fn get_platform_languages() -> Vec<PlatformLanguage> {
+        let mut vec = Vec::new();
+        for (id, description, language) in constants::LANG.iter() {
+            vec.push(PlatformLanguage {
+                language: *language,
+                platform: Platform::Codeforces,
+                id: String::from(*id),
+                description: String::from(*description),
+            });
+        }
+        return vec;
     }
 }
 
