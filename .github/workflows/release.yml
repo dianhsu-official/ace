@@ -1,0 +1,74 @@
+name: Rust
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  pre-require:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+  build-linux:
+    needs: pre-require
+    env:
+      RUST_BACKTRACE: full
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            output: ace
+            dist: ace-linux-amd64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            output: ace
+            dist: ace-linux-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            output: ace.exe
+            dist: ace-windows-amd64.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            output: ace
+            dist: ace-macos-amd64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            output: ace
+            dist: ace-macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        target: ${{ matrix.target }}
+        toolchain: nightly
+        default: true
+        override: true
+
+    - name: Build ${{ matrix.target }}
+      timeout-minutes: 120
+      run: cargo build --target ${{ matrix.target }}
+
+    - name: Test ${{ matrix.target }}
+      if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == "x86_64-pc-windows-msvc" || matrix.target == "x86_64-apple-darwin"
+      timeout-minutes: 120
+      run: cargo test --target ${{ matrix.target }}
+    
+    - name: Build release ${{ matrix.target }}
+      run: cargo build --target ${{ matrix.target }}
+
+    - name: Rename file
+      run: mv target/release/${{ matrix.output }} ./${{ matrix.dist }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with: 
+        path: ${{ matrix.dist }}
