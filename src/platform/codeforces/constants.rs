@@ -2,7 +2,7 @@ use crate::constants::ProgramLanguage;
 use crate::constants::ProgramLanguage::*;
 use lazy_static::lazy_static;
 lazy_static! {
-    static ref LANG: [(&'static str, &'static str, ProgramLanguage); 52] = [
+    pub static ref LANG: [(&'static str, &'static str, ProgramLanguage); 52] = [
         ("43", "GNU GCC C11 5.1.0", ProgramLanguage::Cpp),
         ("80", "Clang++20 Diagnostics", ProgramLanguage::Cpp),
         ("52", "Clang++17 Diagnostics", ProgramLanguage::Cpp),
@@ -62,5 +62,3 @@ lazy_static! {
     ];
 }
 
-#[test]
-fn test_lang() {}

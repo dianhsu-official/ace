@@ -4,12 +4,13 @@ mod constants;
 mod parser;
 mod utility;
 use crate::database::CONFIG_DB;
-use crate::misc::http_client::HttpClient;
 use crate::model::Contest;
 use crate::model::Platform;
+use crate::model::PlatformLanguage;
 use crate::model::SubmissionInfo;
 use crate::model::TestCase;
 use crate::traits::OnlineJudge;
+use crate::utility::http_client::HttpClient;
 use builder::UrlBuilder;
 use cbc::cipher::{BlockDecryptMut, KeyIvInit};
 use regex::Regex;
@@ -45,6 +46,9 @@ impl OnlineJudge for Codeforces {
         code: &str,
         lang_id: &str,
     ) -> Result<String, String> {
+        if let Err(info) = self.login() {
+            return Err(info);
+        }
         let info: Vec<&str> = problem_identifier.split("_").collect();
         if info.len() != 2 {
             return Err(String::from("Invalid identifier."));
@@ -92,22 +96,24 @@ impl OnlineJudge for Codeforces {
     }
 
     /// Check if the user is logged in.
-    fn is_login(&mut self) -> Result<String, String> {
+    fn is_login(&mut self) -> bool {
         let main_page = self.client.get("https://codeforces.com").unwrap();
         let re = match Regex::new(r#"handle = "([\s\S]+?)""#) {
             Ok(re) => re,
-            Err(_) => return Err(String::from("Create regex failed.")),
+            Err(_) => return false,
         };
-        let caps = match re.captures(main_page.as_str()) {
+        let _ = match re.captures(main_page.as_str()) {
             Some(caps) => caps,
-            None => return Err(String::from("Can't find handle.")),
+            None => return false,
         };
-        return Ok(caps[1].to_string());
+        return true;
     }
 
     /// Login to the platform.
-    fn login(&mut self, username: &str, password: &str) -> Result<String, String> {
-        self.username = String::from(username);
+    fn login(&mut self) -> Result<String, String> {
+        if self.is_login() {
+            return Ok(String::from("Already login."));
+        }
         let login_page = match self.client.get(&UrlBuilder::build_index_url()) {
             Ok(login_page) => login_page,
             Err(info) => {
@@ -128,20 +134,28 @@ impl OnlineJudge for Codeforces {
         params.insert("action", "enter");
         params.insert("ftaa", &ftaa);
         params.insert("bfaa", &bfaa);
-        params.insert("handleOrEmail", username);
-        params.insert("password", password);
+        params.insert("handleOrEmail", &self.username);
+        params.insert("password", &self.password);
         params.insert("_tta", "176");
         params.insert("remember", "on");
-        return match self
+        let _ = match self
             .client
             .post_form(&UrlBuilder::build_login_url(), &params)
         {
             Ok(resp) => Ok(resp),
             Err(err) => Err(err),
         };
+        if self.is_login() {
+            return Ok(String::from("Login success."));
+        } else {
+            return Err(String::from("Login failed."));
+        }
     }
     /// Get test cases
     fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String> {
+        if let Err(info) = self.login() {
+            return Err(info);
+        }
         let resp = match self.client.get(problem_url) {
             Ok(resp) => resp,
             Err(err) => {
@@ -156,6 +170,9 @@ impl OnlineJudge for Codeforces {
         problem_identifier: &str,
         submission_id: &str,
     ) -> Result<SubmissionInfo, String> {
+        if let Err(info) = self.login() {
+            return Err(info);
+        }
         let info: Vec<&str> = problem_identifier.split("_").collect();
         if info.len() != 2 {
             return Err(String::from("Invalid identifier."));
@@ -173,6 +190,9 @@ impl OnlineJudge for Codeforces {
     }
 
     fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String> {
+        if let Err(info) = self.login() {
+            return Err(info);
+        }
         let problem_list_url = UrlBuilder::build_problem_list_url(contest_identifier);
         let resp = match self.client.get(&problem_list_url) {
             Ok(resp) => resp,
@@ -184,6 +204,9 @@ impl OnlineJudge for Codeforces {
     }
 
     fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
+        if let Err(info) = self.login() {
+            return Err(info);
+        }
         let contest_url = UrlBuilder::build_contest_url(contest_identifier);
         let resp = match self.client.get(&contest_url) {
             Ok(resp) => resp,
@@ -203,6 +226,19 @@ impl OnlineJudge for Codeforces {
             );
         }
         return Ok(());
+    }
+
+    fn get_platform_languages() -> Vec<PlatformLanguage> {
+        let mut vec = Vec::new();
+        for (id, description, language) in constants::LANG.iter() {
+            vec.push(PlatformLanguage {
+                language: *language,
+                platform: Platform::Codeforces,
+                id: String::from(*id),
+                description: String::from(*description),
+            });
+        }
+        return vec;
     }
 }
 
@@ -272,18 +308,16 @@ impl Codeforces {
 #[ignore = "reason: need login"]
 fn test_login() {
     dotenv::dotenv().ok();
-    let mut cf = match Codeforces::new() {
-        Ok(cf) => cf,
-        Err(_) => {
-            return;
-        }
-    };
-    let username = dotenv::var("CODEFORCES_USERNAME").unwrap();
-    let password = dotenv::var("CODEFORCES_PASSWORD").unwrap();
-    let resp = cf.login(&username, &password);
+    let mut cf = Codeforces::create(
+        dotenv::var("CODEFORCES_USERNAME").unwrap().as_str(),
+        dotenv::var("CODEFORCES_PASSWORD").unwrap().as_str(),
+        "",
+        "https://codeforces.com",
+    );
+    let resp = cf.login();
     match resp {
-        Ok(_) => {
-            println!("Login success.");
+        Ok(resp) => {
+            println!("{}", resp);
         }
         Err(info) => {
             println!("Login failed, {}", info);

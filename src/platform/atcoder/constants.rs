@@ -2,7 +2,7 @@ use crate::constants::ProgramLanguage;
 use crate::constants::ProgramLanguage::*;
 use lazy_static::lazy_static;
 lazy_static! {
-    static ref LANG: [(&'static str, &'static str, ProgramLanguage); 90] = [
+    pub static ref LANG: [(&'static str, &'static str, ProgramLanguage); 90] = [
         ("5001", "C++ 20 (gcc 12.2)", Cpp),
         ("5002", "Go (go 1.20.6)", Go),
         ("5003", "C# 11.0 (.NET 7.0.7)", CSharp),

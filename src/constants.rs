@@ -1,6 +1,8 @@
 use crate::model::Platform;
 use clap::ValueEnum;
 use lazy_static::lazy_static;
+use serde_derive::Deserialize;
+use serde_derive::Serialize;
 use std::collections::HashMap;
 use strum_macros::Display;
 use strum_macros::EnumIter;
@@ -18,7 +20,7 @@ lazy_static! {
     ]);
 }
 #[allow(dead_code)]
-#[derive(Debug, EnumIter, Display, Copy, Clone, ValueEnum, EnumString)]
+#[derive(Debug, EnumIter, Display, Copy, Clone, ValueEnum, EnumString, Serialize, Deserialize, PartialEq)]
 pub enum ProgramLanguage {
     C,
     Cpp,

@@ -28,7 +28,7 @@ impl Cli {
         let cli = Cli::parse();
         match CONTEXT.lock() {
             Ok(mut context) => {
-                context.workspace_directory = match std::env::current_dir() {
+                context.current_directory = match std::env::current_dir() {
                     Ok(cur_dir) => match cur_dir.to_str() {
                         Some(dir_str) => Some(dir_str.to_string()),
                         None => None,

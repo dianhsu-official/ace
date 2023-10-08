@@ -7,27 +7,26 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Launch",
+            "program": "${workspaceFolder}/target/debug/ace.exe",
+            "args": [
+                "submit"
+            ],
+            "cwd": "C:\\Users\\dianh\\ace\\AtCoder\\abc321\\a"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Cargo launch",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=ace",
-                    "--package=ace"
+                    "--lib"
                 ]
             },
-            "cwd": "${workspaceRoot}",
             "args": [
-                "config",
-                "lang"
+                "submit"
             ]
         },
-        {
-            "type": "cppvsdbg",
-            "request": "launch",
-            "name": "Cargo test",
-            "program": "${workspaceRoot}/target/debug/ace.exe",
-            "cwd": "${workspaceRoot}",
-            "args": []
-        }
     ]
 }

@@ -2,7 +2,11 @@ use inquire::{Select, Text};
 use strum::IntoEnumIterator;
 
 use super::model::LanguageArgs;
-use crate::{command::model::LanguageOptions, constants::ProgramLanguage, database::CONFIG_DB};
+use crate::{
+    command::model::LanguageOptions, constants::ProgramLanguage, database::CONFIG_DB,
+    model::Platform, platform::atcoder::AtCoder, platform::codeforces::Codeforces,
+    traits::OnlineJudge,
+};
 pub struct LanguageCommand {}
 
 impl LanguageCommand {
@@ -18,7 +22,7 @@ impl LanguageCommand {
             },
             LanguageOptions::Set => {
                 let languages: Vec<ProgramLanguage> = ProgramLanguage::iter().collect::<Vec<_>>();
-                let lang = match Select::new(
+                let language_identifier = match Select::new(
                     "Choose a language to set compile and execute command:",
                     languages,
                 )
@@ -35,6 +39,17 @@ impl LanguageCommand {
                         return Err("Suffix cannot be empty".to_string());
                     }
                 };
+                let platform = match Select::new(
+                    "Choose a platform to set language:",
+                    Platform::iter().collect::<Vec<_>>(),
+                )
+                .prompt()
+                {
+                    Ok(ans) => ans,
+                    Err(info) => {
+                        return Err(info.to_string());
+                    }
+                };
                 let template_path =
                     match Text::new("Enter the template path (allow empty): ").prompt() {
                         Ok(value) => value,
@@ -45,46 +60,55 @@ impl LanguageCommand {
                         Ok(value) => value,
                         Err(_) => String::from(""),
                     };
-                let execute_command = match Text::new("Enter the execute command: ").prompt() {
+                let execute_command = match Text::new("Enter the execute command (allow empty): ").prompt() {
                     Ok(value) => value,
-                    Err(_) => {
-                        return Err("Execute command cannot be empty".to_string());
-                    }
+                    Err(_) => String::from(""),
                 };
                 let clear_command =
                     match Text::new("Enter the clear command (allow empty): ").prompt() {
                         Ok(value) => value,
                         Err(_) => String::from(""),
                     };
+                let alias = match Text::new("Enter the alias: ").prompt() {
+                    Ok(value) => value,
+                    Err(_) => {
+                        return Err("Alias cannot be empty".to_string());
+                    }
+                };
+                let submit_language_infos = match platform {
+                    Platform::AtCoder => AtCoder::get_platform_languages(),
+                    Platform::Codeforces => Codeforces::get_platform_languages(),
+                };
+                let filtered_submit_language_infos = submit_language_infos
+                    .iter()
+                    .filter(|info| info.language == language_identifier)
+                    .collect::<Vec<_>>();
+                let submit_languge_info = match Select::new(
+                    "Select exact language to submit code:",
+                    filtered_submit_language_infos,
+                )
+                .prompt()
+                {
+                    Ok(submit_language_info) => submit_language_info,
+                    Err(info) => {
+                        return Err(info.to_string());
+                    }
+                };
                 match CONFIG_DB.set_lang_config(
-                    lang,
+                    &alias,
                     &suffix,
+                    platform,
+                    language_identifier,
+                    &submit_languge_info.id,
+                    &submit_languge_info.description,
                     &template_path,
                     &compile_command,
                     &execute_command,
                     &clear_command,
                 ) {
-                    Ok(_) => {}
-                    Err(info) => return Err(info),
-                };
-                let set_default = match Select::new(
-                    "Do you want to set this language as default?",
-                    vec!["Yes", "No"],
-                )
-                .prompt()
-                {
-                    Ok(ans) => ans,
-                    Err(_) => {
-                        return Err("Set default failed".to_string());
-                    }
-                };
-                if set_default == "Yes" {
-                    match CONFIG_DB.set_config("language", lang.to_string().as_str()) {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    }
+                    Ok(_) => Ok(String::from("Set language config success")),
+                    Err(info) => Err(info),
                 }
-                return Ok(String::from("Set language config success"));
             }
         }
     }

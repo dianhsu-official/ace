@@ -2,9 +2,8 @@ use inquire::Select;
 
 use crate::context::CONTEXT;
 use crate::database::CONFIG_DB;
-use crate::logger::LOGGER;
-use crate::misc::utility::Utility;
 use crate::snippet::Snippet;
+use crate::utility::Utility;
 
 use super::model::TestArgs;
 use std::env::current_dir;
@@ -71,7 +70,20 @@ impl TestCommand {
                 None => None,
             };
         }
-        let language = match Utility::get_program_language_from_filename(&filename) {
+        let workspace = match CONFIG_DB.get_config("workspace") {
+            Ok(workspace) => workspace,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let (platform, _, _) =
+            match Utility::get_identifiers_from_currrent_location(&filename, &workspace) {
+                Ok(resp) => resp,
+                Err(info) => {
+                    return Err(info);
+                }
+            };
+        let language = match Utility::get_program_language_from_filename(&filename, platform) {
             Ok(language) => language,
             Err(info) => {
                 return Err(info);
@@ -140,7 +152,7 @@ impl TestCommand {
         if let Err(info) = Self::run_no_input_command(compile_command) {
             return Err(info);
         }
-        let test_cases = match Utility::get_test_cases_filename_from_current_dir() {
+        let test_cases = match Utility::get_test_cases_filename_from_current_location() {
             Ok(test_cases) => test_cases,
             Err(info) => {
                 return Err(info);
@@ -163,7 +175,6 @@ impl TestCommand {
                 }
             };
             if cfg!(target_os = "windows") {
-                LOGGER.info(&format!("run command: powershell -c {}", execute_command));
                 let command = Command::new("powershell")
                     .args(["-c", execute_command])
                     .stdin(Stdio::piped())
@@ -199,7 +210,6 @@ impl TestCommand {
                     }
                 }
             } else {
-                LOGGER.info(&format!("run command: sh -c {}", execute_command));
                 let command = Command::new("sh")
                     .args(["-c", execute_command])
                     .stdin(Stdio::piped())

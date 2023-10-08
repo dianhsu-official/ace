@@ -4,15 +4,16 @@ use super::model::SubmitArgs;
 use crate::{
     constants::ProgramLanguage,
     database::CONFIG_DB,
-    misc::utility::Utility,
     model::{Platform, Verdict},
     platform::atcoder::AtCoder,
     platform::codeforces::Codeforces,
     traits::OnlineJudge,
+    utility::Utility,
 };
 use std::{env::current_dir, fs, thread, time::Duration};
 
 pub struct SubmitCommand {}
+#[derive(Debug)]
 pub struct SubmitInfo {
     pub platform: Platform,
     pub language_id: String,
@@ -36,7 +37,13 @@ impl SubmitCommand {
                         .into_iter()
                         .filter_map(|x| match x {
                             Ok(file) => match file.file_name().to_str() {
-                                Some(filename) => Some(filename.to_string()),
+                                Some(filename) => {
+                                    if filename.starts_with("code.") {
+                                        Some(filename.to_string())
+                                    } else {
+                                        None
+                                    }
+                                }
                                 None => None,
                             },
                             Err(_) => None,
@@ -48,7 +55,8 @@ impl SubmitCommand {
                 };
                 let filename = match Select::new("Select file to ", files).prompt() {
                     Ok(filename) => filename,
-                    Err(_) => {
+                    Err(info) => {
+                        log::error!("{}", info);
                         return Err("Cannot get current path".to_string());
                     }
                 };
@@ -58,10 +66,14 @@ impl SubmitCommand {
         let submit_info = match current_dir.join(filename.clone()).to_str() {
             Some(file_path) => match Self::get_submit_info(&filename, file_path) {
                 Ok(submit_info) => Some(submit_info),
-                Err(_) => None,
+                Err(info) => {
+                    log::error!("{}", info);
+                    return Err(info);
+                }
             },
             None => None,
         };
+        log::info!("{:?}", submit_info);
         match submit_info {
             Some(submit_info) => match submit_info.platform {
                 Platform::Codeforces => {
@@ -121,6 +133,7 @@ impl SubmitCommand {
                     ) {
                         Ok(submission_id) => submission_id,
                         Err(info) => {
+                            log::error!("{}", info);
                             return Err(info);
                         }
                     };
@@ -159,32 +172,25 @@ impl SubmitCommand {
 }
 impl SubmitCommand {
     fn get_submit_info(filename: &str, file_path: &str) -> Result<SubmitInfo, String> {
-        let _ = filename;
-        let _ = file_path;
-        let workspace = match current_dir() {
-            Ok(current_path) => match current_path.to_str() {
-                Some(current_path) => current_path.to_string(),
-                None => {
-                    return Err("Cannot get current path".to_string());
-                }
-            },
-            Err(_) => {
-                return Err("Cannot get current path".to_string());
-            }
-        };
-        let language = match Utility::get_program_language_from_filename(filename) {
-            Ok(language) => language,
+        let workspace = match CONFIG_DB.get_config("workspace") {
+            Ok(workspace) => workspace,
             Err(info) => {
                 return Err(info);
             }
         };
-        let (platform, problem_identifier, contest_identifier) =
-            match Utility::get_indentifiers(file_path, &workspace) {
+        let (platform, contest_identifier, problem_identifier) =
+            match Utility::get_identifiers_from_currrent_location(file_path, &workspace) {
                 Ok(resp) => resp,
                 Err(info) => {
                     return Err(info);
                 }
             };
+        let language = match Utility::get_program_language_from_filename(filename, platform) {
+            Ok(language) => language,
+            Err(info) => {
+                return Err(info);
+            }
+        };
         let language_id = match SubmitCommand::get_submit_language_id(language, platform) {
             Ok(language_id) => language_id,
             Err(info) => {
@@ -209,27 +215,33 @@ impl SubmitCommand {
         language: ProgramLanguage,
         platform: Platform,
     ) -> Result<String, String> {
-        let language_ext = match CONFIG_DB.get_language_platform_submit_lang_id(language) {
-            Ok(language_ext) => language_ext,
+        let language_configs = match CONFIG_DB.get_language_platform_config(language, platform) {
+            Ok(language_configs) => language_configs,
             Err(info) => return Err(info),
         };
-        match platform {
-            Platform::Codeforces => match language_ext.codeforces {
-                Some(language_id) => {
-                    return Ok(language_id);
-                }
-                None => {
-                    return Err("Please set language config for codeforces first.".to_string());
-                }
-            },
-            Platform::AtCoder => match language_ext.atcoder {
-                Some(language_id) => {
-                    return Ok(language_id);
-                }
-                None => {
-                    return Err("Please set language config for atcoder first.".to_string());
-                }
-            },
+        match language_configs.len() {
+            0 => {
+                return Err(format!(
+                    "No language config set for {}, please set language first.",
+                    platform
+                ));
+            }
+            1 => {
+                return Ok(language_configs[0].submit_id.clone());
+            }
+            _ => {
+                let language_ids = language_configs
+                    .iter()
+                    .map(|x| x.submit_id.clone())
+                    .collect::<Vec<_>>();
+                let language_id = match Select::new("Select language id", language_ids).prompt() {
+                    Ok(language_id) => language_id,
+                    Err(info) => {
+                        return Err(info.to_string());
+                    }
+                };
+                return Ok(language_id);
+            }
         }
     }
 }
