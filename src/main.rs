@@ -1,8 +1,8 @@
 mod command;
 mod constants;
 mod context;
+mod utility;
 mod database;
-mod misc;
 mod model;
 mod platform;
 mod snippet;

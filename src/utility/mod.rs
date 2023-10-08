@@ -5,11 +5,11 @@ use inquire::Select;
 use crate::{
     constants::{ProgramLanguage, PLATFORM_MAP},
     database::CONFIG_DB,
-    model::Platform, platform,
+    model::Platform,
 };
 
 pub mod account;
-
+pub mod http_client;
 pub struct Utility {}
 
 impl Utility {
@@ -40,7 +40,7 @@ impl Utility {
                 return Some(x);
             })
             .collect::<Vec<_>>();
-        if path_vec.len() < 4 {
+        if path_vec.len() < 3 {
             return Err(format!(
                 "invalid path: {}, current_path: {}, workspace: {}",
                 relative_path, cur_path, workspace
@@ -110,9 +110,9 @@ impl Utility {
 #[test]
 fn test_get_indentifiers() {
     #[cfg(target_os = "windows")]
-    let cur_path = r#"C:\Users\dianhsu\workspace\Atcoder\abc321\abc321_g"#;
+    let cur_path = r#"C:\Users\dianhsu\workspace\Atcoder\abc321\g"#;
     #[cfg(not(target_os = "windows"))]
-    let cur_path = r#"/home/dianhsu/workspace/Atcoder/abc321/abc321_g"#;
+    let cur_path = r#"/home/dianhsu/workspace/Atcoder/abc321/g"#;
     #[cfg(target_os = "windows")]
     let workspace = r#"C:\Users\dianhsu\workspace"#;
     #[cfg(not(target_os = "windows"))]

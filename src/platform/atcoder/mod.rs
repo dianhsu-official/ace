@@ -1,5 +1,5 @@
 use crate::database::CONFIG_DB;
-use crate::misc::http_client::HttpClient;
+use crate::utility::http_client::HttpClient;
 use crate::model::PlatformLanguage;
 use crate::model::{Contest, SubmissionInfo};
 use crate::model::{Platform, TestCase};

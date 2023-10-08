@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 
-use crate::{database::CONFIG_DB, misc::utility::Utility, model::Platform};
+use crate::{database::CONFIG_DB, utility::Utility, model::Platform};
 
 #[derive(Debug, Clone)]
 pub struct Context {

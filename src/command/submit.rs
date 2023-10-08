@@ -4,11 +4,11 @@ use super::model::SubmitArgs;
 use crate::{
     constants::ProgramLanguage,
     database::CONFIG_DB,
-    misc::utility::Utility,
     model::{Platform, Verdict},
     platform::atcoder::AtCoder,
     platform::codeforces::Codeforces,
     traits::OnlineJudge,
+    utility::Utility,
 };
 use std::{env::current_dir, fs, thread, time::Duration};
 

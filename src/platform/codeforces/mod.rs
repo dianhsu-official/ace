@@ -4,7 +4,7 @@ mod parser;
 mod utility;
 mod constants;
 use crate::database::CONFIG_DB;
-use crate::misc::http_client::HttpClient;
+use crate::utility::http_client::HttpClient;
 use crate::model::Contest;
 use crate::model::Platform;
 use crate::model::SubmissionInfo;

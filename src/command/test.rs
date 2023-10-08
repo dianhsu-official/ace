@@ -2,8 +2,7 @@ use inquire::Select;
 
 use crate::context::CONTEXT;
 use crate::database::CONFIG_DB;
-use crate::misc::utility::Utility;
-use crate::platform;
+use crate::utility::Utility;
 use crate::snippet::Snippet;
 
 use super::model::TestArgs;

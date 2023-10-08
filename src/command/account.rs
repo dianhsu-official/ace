@@ -1,5 +1,5 @@
 use super::model::{AccountArgs, AccountOptions};
-use crate::{constants::PLATFORM_MAP, misc::utility::account::AccountUtility};
+use crate::{constants::PLATFORM_MAP, utility::account::AccountUtility};
 pub struct AccountCommand {}
 impl AccountCommand {
     pub fn handle(args: AccountArgs) -> Result<String, String> {
