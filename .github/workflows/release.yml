@@ -2,7 +2,6 @@ name: ACE Release
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
 
 env:
@@ -72,4 +71,5 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with: 
+        name: ${{ matrix.dist }}
         path: ${{ matrix.dist }}
