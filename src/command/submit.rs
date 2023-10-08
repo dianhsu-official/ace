@@ -53,14 +53,22 @@ impl SubmitCommand {
                         return Err("Cannot get current path".to_string());
                     }
                 };
-                let filename = match Select::new("Select file to ", files).prompt() {
-                    Ok(filename) => filename,
-                    Err(info) => {
-                        log::error!("{}", info);
-                        return Err("Cannot get current path".to_string());
+                match files.len() {
+                    0 => {
+                        return Err("No code file found".to_string());
                     }
-                };
-                filename
+                    1 => files[0].clone(),
+                    _ => {
+                        let filename = match Select::new("Select file to submit: ", files).prompt() {
+                            Ok(filename) => filename,
+                            Err(info) => {
+                                log::error!("{}", info);
+                                return Err(info.to_string());
+                            }
+                        };
+                        filename
+                    }
+                }
             }
         };
         let submit_info = match current_dir.join(filename.clone()).to_str() {

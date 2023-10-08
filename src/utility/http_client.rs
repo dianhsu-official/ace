@@ -71,7 +71,6 @@ impl HttpClient {
         }
         match res.text() {
             Ok(text) => {
-                HttpClient::debug_save(&text, ".html");
                 Ok(text)
             }
             Err(err) => Err(format!("Post form error, {}", err)),

@@ -23,7 +23,7 @@ impl Utility {
         workspace: &str,
     ) -> Result<(Platform, String, String), String> {
         if !cur_path.starts_with(workspace) {
-            return Err("current path is not in workspace".to_string());
+            return Err(format!("current path <{}> is not in workspace <{}>", cur_path, workspace));
         }
         let relative_path = match cur_path.strip_prefix(&workspace) {
             Some(path) => path,

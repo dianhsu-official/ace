@@ -53,6 +53,13 @@ impl TestCommand {
                 context.update(current_path_str);
             }
         }
+        let absolute_path = current_path.join(filename.clone());
+        let absolute_path_str = match absolute_path.to_str() {
+            Some(absolute_path_str) => {absolute_path_str},
+            None => {
+                return Err("Cannot get absolute path".to_string());
+            },
+        };
         if let Ok(mut context) = CONTEXT.lock() {
             let path = Path::new(&filename);
             context.filename_without_extension = match path.file_stem() {
@@ -77,7 +84,7 @@ impl TestCommand {
             }
         };
         let (platform, _, _) =
-            match Utility::get_identifiers_from_currrent_location(&filename, &workspace) {
+            match Utility::get_identifiers_from_currrent_location(absolute_path_str, &workspace) {
                 Ok(resp) => resp,
                 Err(info) => {
                     return Err(info);
@@ -111,7 +118,7 @@ impl TestCommand {
     }
     fn run_no_input_command(single_command: &str) -> Result<String, String> {
         if cfg!(target_os = "windows") {
-            println!("run command: powershell -c {}", single_command);
+            log::info!("run command: powershell -c {}", single_command);
             let output = Command::new("powershell")
                 .args(["-c", single_command])
                 .stdin(Stdio::null())
@@ -127,7 +134,7 @@ impl TestCommand {
                 return Ok("Execute success".to_string());
             }
         } else {
-            println!("run command: sh -c {}", single_command);
+            log::info!("run command: sh -c {}", single_command);
             let output = Command::new("sh")
                 .args(["-c", single_command])
                 .stdin(Stdio::null())
