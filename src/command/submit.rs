@@ -13,6 +13,7 @@ use crate::{
 use std::{env::current_dir, fs, thread, time::Duration};
 
 pub struct SubmitCommand {}
+#[derive(Debug)]
 pub struct SubmitInfo {
     pub platform: Platform,
     pub language_id: String,
@@ -72,6 +73,7 @@ impl SubmitCommand {
             },
             None => None,
         };
+        log::info!("{:?}", submit_info);
         match submit_info {
             Some(submit_info) => match submit_info.platform {
                 Platform::Codeforces => {
@@ -176,7 +178,7 @@ impl SubmitCommand {
                 return Err(info);
             }
         };
-        let (platform, problem_identifier, contest_identifier) =
+        let (platform, contest_identifier, problem_identifier) =
             match Utility::get_identifiers_from_currrent_location(file_path, &workspace) {
                 Ok(resp) => resp,
                 Err(info) => {

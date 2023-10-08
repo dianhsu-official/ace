@@ -6,8 +6,8 @@ pub trait OnlineJudge {
         code: &str,
         lang_id: &str,
     ) -> Result<String, String>;
-    fn is_login(&mut self) -> Result<String, String>;
-    fn login(&mut self, username: &str, password: &str) -> Result<String, String>;
+    fn is_login(&mut self) -> bool;
+    fn login(&mut self) -> Result<String, String>;
     /// Get all problems in a contest, return a vector of problem identifier and problem url  
     fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String>;
     fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String>;

@@ -1,9 +1,9 @@
 use crate::database::CONFIG_DB;
-use crate::utility::http_client::HttpClient;
 use crate::model::PlatformLanguage;
 use crate::model::{Contest, SubmissionInfo};
 use crate::model::{Platform, TestCase};
 use crate::traits::OnlineJudge;
+use crate::utility::http_client::HttpClient;
 mod builder;
 mod constants;
 mod parser;
@@ -29,6 +29,9 @@ impl OnlineJudge for AtCoder {
         code: &str,
         lang_id: &str,
     ) -> Result<String, String> {
+        if let Err(info) = self.login(){
+            return Err(info);
+        }
         let vec = problem_identifier.split("_").collect::<Vec<_>>();
         log::info!("vec: {:?}", vec);
         if vec.len() != 2 {
@@ -61,20 +64,22 @@ impl OnlineJudge for AtCoder {
         return HtmlParser::parse_recent_submission_id(&resp);
     }
 
-    fn is_login(&mut self) -> Result<String, String> {
+    fn is_login(&mut self) -> bool {
         let resp = match self.client.get(&UrlBuilder::build_index_url()) {
             Ok(resp) => resp,
-            Err(info) => return Err(info),
+            Err(_) => return false,
         };
         if resp.contains("</span> Sign Out</a></li>") {
-            return Ok(String::from("You have logged in."));
+            return true;
         } else {
-            return Err(String::from("You have not logged in."));
+            return false;
         }
     }
 
-    fn login(&mut self, username: &str, password: &str) -> Result<String, String> {
-        self.username = String::from(username);
+    fn login(&mut self) -> Result<String, String> {
+        if self.is_login() {
+            return Ok(String::from("Already login."));
+        }
         let login_page_url = UrlBuilder::build_login_page_url();
         let resp = match self.client.get(&login_page_url) {
             Ok(resp) => resp,
@@ -87,19 +92,26 @@ impl OnlineJudge for AtCoder {
             }
         };
         let mut data = std::collections::HashMap::new();
-        data.insert("username", username);
-        data.insert("password", password);
+        data.insert("username", self.username.as_str());
+        data.insert("password", self.password.as_str());
         data.insert("csrf_token", &csrf_token);
         let login_url = UrlBuilder::build_login_url();
         let _ = match self.client.post_form(&login_url, &data) {
             Ok(_) => {}
             Err(info) => return Err(info),
         };
-        return self.is_login();
+        if self.is_login() {
+            return Ok(String::from("Login success."));
+        } else {
+            return Err(String::from("Login failed."));
+        }
     }
 
     /// Get test cases from AtCoder
     fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String> {
+        if let Err(info) = self.login(){
+            return Err(info);
+        }
         let resp = match self.client.get(&problem_url) {
             Ok(resp) => resp,
             Err(info) => return Err(info),
@@ -111,6 +123,9 @@ impl OnlineJudge for AtCoder {
         problem_identifier: &str,
         submission_id: &str,
     ) -> Result<SubmissionInfo, String> {
+        if let Err(info) = self.login(){
+            return Err(info);
+        }
         let vec = problem_identifier.split("_").collect::<Vec<_>>();
         if vec.len() != 2 {
             return Err(String::from("Invalid problem identifier."));
@@ -125,6 +140,9 @@ impl OnlineJudge for AtCoder {
     }
 
     fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String> {
+        if let Err(info) = self.login(){
+            return Err(info);
+        }
         let problem_list_url = UrlBuilder::build_problem_list_url(contest_identifier);
         let resp = match self.client.get(&problem_list_url) {
             Ok(resp) => resp,
@@ -134,6 +152,9 @@ impl OnlineJudge for AtCoder {
     }
 
     fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
+        if let Err(info) = self.login(){
+            return Err(info);
+        }
         let contest_url = UrlBuilder::build_contest_url(contest_identifier);
         let resp = match self.client.get(&contest_url) {
             Ok(resp) => resp,

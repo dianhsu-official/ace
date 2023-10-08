@@ -55,12 +55,8 @@ impl HttpClient {
     }
 
     #[allow(unused)]
-    pub fn post_form(
-        &mut self,
-        url: &str,
-        form: &HashMap<&str, &str>,
-    ) -> Result<String, String> {
-        log::info!("post data to {}.", url);
+    pub fn post_form(&mut self, url: &str, form: &HashMap<&str, &str>) -> Result<String, String> {
+        log::info!("post data {:?} to {}.", form, url);
         let res = match self.client.post(url).form(&form).send() {
             Ok(res) => res,
             Err(err) => return Err(format!("Request error, {}", err)),
@@ -74,16 +70,15 @@ impl HttpClient {
             ));
         }
         match res.text() {
-            Ok(text) => Ok(text),
+            Ok(text) => {
+                HttpClient::debug_save(&text, ".html");
+                Ok(text)
+            }
             Err(err) => Err(format!("Post form error, {}", err)),
         }
     }
     #[allow(unused)]
-    pub fn post_data(
-        &mut self,
-        url: &str,
-        json: &HashMap<&str, &str>,
-    ) -> Result<String, String> {
+    pub fn post_data(&mut self, url: &str, json: &HashMap<&str, &str>) -> Result<String, String> {
         log::info!("post data to {}.", url);
         let res = match self.client.post(url).json(json).send() {
             Ok(res) => res,

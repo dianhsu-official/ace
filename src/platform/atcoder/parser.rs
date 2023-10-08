@@ -61,6 +61,7 @@ impl HtmlParser {
         submission_info.execute_memory = execute_memory;
         submission_info.verdict = match submission_info.verdict_info.as_str() {
             "Judging" => Verdict::Waiting,
+            "WJ" => Verdict::Waiting,
             _ => Verdict::Resulted,
         };
         return Ok(submission_info);
