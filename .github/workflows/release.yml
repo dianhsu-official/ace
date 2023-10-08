@@ -78,7 +78,7 @@ jobs:
       run: cross build -r --target ${{ matrix.target }}
 
     - name: Rename file
-      run: mv target/release/${{ matrix.output }} ./${{ matrix.dist }}
+      run: mv target/${{ matrix.target }}/release/${{ matrix.output }} ./${{ matrix.dist }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
