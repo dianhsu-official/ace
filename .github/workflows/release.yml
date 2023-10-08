@@ -1,4 +1,4 @@
-name: Rust
+name: ACE Release
 
 on:
   push:
@@ -52,18 +52,30 @@ jobs:
         toolchain: nightly
         default: true
         override: true
-
-    - name: Build ${{ matrix.target }}
-      timeout-minutes: 120
-      run: cargo build --target ${{ matrix.target }}
-
-    - name: Test ${{ matrix.target }}
-      if: ${{ matrix.target }} == 'x86_64-unknown-linux-gnu' || ${{ matrix.target }} == "x86_64-pc-windows-msvc" || ${{ matrix.target }} == "x86_64-apple-darwin"
-      timeout-minutes: 120
-      run: cargo test --target ${{ matrix.target }}
     
-    - name: Build release ${{ matrix.target }}
+    - name: Install cross
+      run: cargo install cross
+
+    - name: Cargo build ${{ matrix.target }}
+      if: ${{ matrix.os }} != 'ubuntu-latest'
+      timeout-minutes: 120
       run: cargo build --target ${{ matrix.target }}
+
+    - name: Cross build ${{ matrix.target }}
+      if: ${{ matrix.os }} == 'ubuntu-latest'
+      timeout-minutes: 120
+      run: cross build --target ${{ matrix.target }}
+
+    
+    - name: Cargo build ${{ matrix.target }}
+      if: ${{ matrix.os }} != 'ubuntu-latest'
+      timeout-minutes: 120
+      run: cargo build -r --target ${{ matrix.target }}
+
+    - name: Cross build ${{ matrix.target }}
+      if: ${{ matrix.os }} == 'ubuntu-latest'
+      timeout-minutes: 120
+      run: cross build -r --target ${{ matrix.target }}
 
     - name: Rename file
       run: mv target/release/${{ matrix.output }} ./${{ matrix.dist }}
