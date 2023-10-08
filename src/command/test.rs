@@ -2,8 +2,8 @@ use inquire::Select;
 
 use crate::context::CONTEXT;
 use crate::database::CONFIG_DB;
-use crate::utility::Utility;
 use crate::snippet::Snippet;
+use crate::utility::Utility;
 
 use super::model::TestArgs;
 use std::env::current_dir;
@@ -70,7 +70,20 @@ impl TestCommand {
                 None => None,
             };
         }
-        let language = match Utility::get_program_language_from_filename(&filename) {
+        let workspace = match CONFIG_DB.get_config("workspace") {
+            Ok(workspace) => workspace,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let (platform, _, _) =
+            match Utility::get_identifiers_from_currrent_location(&filename, &workspace) {
+                Ok(resp) => resp,
+                Err(info) => {
+                    return Err(info);
+                }
+            };
+        let language = match Utility::get_program_language_from_filename(&filename, platform) {
             Ok(language) => language,
             Err(info) => {
                 return Err(info);

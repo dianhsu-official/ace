@@ -9,7 +9,7 @@ pub struct Context {
     pub platform: Option<Platform>,
     pub problem_identifier: Option<String>,
     pub contest_identifier: Option<String>,
-    pub workspace_directory: Option<String>,
+    pub current_directory: Option<String>,
     /// The full file name of the source file, including the extension.
     pub filename_with_extension: Option<String>,
     /// The name of the source file, without the extension.
@@ -21,7 +21,7 @@ impl Context {
             platform: None,
             problem_identifier: None,
             contest_identifier: None,
-            workspace_directory: None,
+            current_directory: None,
             filename_with_extension: None,
             filename_without_extension: None,
         }
@@ -33,7 +33,7 @@ impl Context {
                     self.platform = Some(res.0);
                     self.contest_identifier = Some(res.1);
                     self.problem_identifier = Some(res.2);
-                    self.workspace_directory = Some(cur_path.to_string());
+                    self.current_directory = Some(cur_path.to_string());
                 }
                 Err(_) => {}
             };

@@ -142,7 +142,8 @@ fn test_client() {
             use std::fs::File;
             let mut file = File::create("test.html").unwrap();
             file.write_all(resp.as_bytes()).unwrap();
-            assert!(resp.is_empty() == false)
+            assert!(resp.is_empty() == false);
+            std::fs::remove_file("test.html").unwrap();
         }
         Err(err) => {
             print!("{}", err);

@@ -6,11 +6,12 @@ use crate::constants::ProgramLanguage;
 use crate::model::{LanguageConfig, LanguageSubmitConfig, Platform};
 use std::str::FromStr;
 impl ConfigDatabase {
-    pub fn get_language_submit_config_from_suffix(
+    pub fn get_language_submit_config_by_suffix_and_platform(
         &self,
         suffix: &str,
+        platform: Platform,
     ) -> Result<Vec<LanguageSubmitConfig>, String> {
-        let query = String::from("SELECT alias, suffix, platform, identifier, submit_id, submit_description FROM language WHERE suffix = ?");
+        let query = String::from("SELECT alias, suffix, platform, identifier, submit_id, submit_description FROM language WHERE suffix = ? and platform = ?");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
             Err(info) => {
@@ -18,6 +19,10 @@ impl ConfigDatabase {
             }
         };
         if let Err(info) = stmt.bind((1, suffix)) {
+            return Err(info.to_string());
+        }
+        let platform_str = platform.to_string();
+        if let Err(info) = stmt.bind((2, platform_str.as_str())) {
             return Err(info.to_string());
         }
         let mut vec = Vec::new();

@@ -105,4 +105,6 @@ fn test_config_database() {
     for account in res {
         println!("{:?}", account);
     }
+    drop(config_db);
+    std::fs::remove_file(config_db_path).unwrap();
 }

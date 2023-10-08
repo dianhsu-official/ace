@@ -40,7 +40,7 @@ impl Snippet {
                 Some(cid) => Some(cid.clone()),
                 None => None,
             },
-            "%$workspace$%" => match &context.workspace_directory {
+            "%$workspace$%" => match &context.current_directory {
                 Some(workspace) => Some(workspace.clone()),
                 None => None,
             },

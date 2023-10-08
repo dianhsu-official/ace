@@ -183,7 +183,7 @@ impl SubmitCommand {
                     return Err(info);
                 }
             };
-        let language = match Utility::get_program_language_from_filename(filename) {
+        let language = match Utility::get_program_language_from_filename(filename, platform) {
             Ok(language) => language,
             Err(info) => {
                 return Err(info);

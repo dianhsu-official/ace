@@ -15,7 +15,7 @@ pub struct Utility {}
 impl Utility {
     /// Get platform, contest identifier and problem identifier from current path.
     /// # Arguments
-    /// * `cur_path` - Current path.
+    /// * `cur_path` - Current path of code.
     /// # Returns
     /// * `Ok((Platform, String, String))` - Platform, contest identifier and contest problem identifier(e.g. [a, b, c, d, e]).
     pub fn get_identifiers_from_currrent_location(
@@ -57,14 +57,14 @@ impl Utility {
             return Ok((*platform, contest_identifier, problem_identifier));
         }
     }
-    pub fn get_program_language_from_filename(filename: &str) -> Result<ProgramLanguage, String> {
+    pub fn get_program_language_from_filename(filename: &str, platform: Platform) -> Result<ProgramLanguage, String> {
         let suffix = match filename.split(".").last() {
             Some(suffix) => suffix,
             None => {
                 return Err("invalid filename".to_string());
             }
         };
-        let vec = match CONFIG_DB.get_language_submit_config_from_suffix(&suffix) {
+        let vec = match CONFIG_DB.get_language_submit_config_by_suffix_and_platform(&suffix, platform) {
             Ok(vec) => vec,
             Err(info) => {
                 return Err(info);
