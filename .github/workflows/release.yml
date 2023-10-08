@@ -57,23 +57,23 @@ jobs:
       run: cargo install cross
 
     - name: Cargo build ${{ matrix.target }}
-      if: ${{ matrix.os }} != 'ubuntu-latest'
+      if: ${{ !contains(matrix.os, 'ubuntu') }}
       timeout-minutes: 120
       run: cargo build --target ${{ matrix.target }}
 
     - name: Cross build ${{ matrix.target }}
-      if: ${{ matrix.os }} == 'ubuntu-latest'
+      if: ${{ contains(matrix.os, 'ubuntu') }}
       timeout-minutes: 120
       run: cross build --target ${{ matrix.target }}
 
     
     - name: Cargo build ${{ matrix.target }}
-      if: ${{ matrix.os }} != 'ubuntu-latest'
+      if: ${{ !contains(matrix.os, 'ubuntu') }}
       timeout-minutes: 120
       run: cargo build -r --target ${{ matrix.target }}
 
     - name: Cross build ${{ matrix.target }}
-      if: ${{ matrix.os }} == 'ubuntu-latest'
+      if: ${{ contains(matrix.os, 'ubuntu') }}
       timeout-minutes: 120
       run: cross build -r --target ${{ matrix.target }}
 
