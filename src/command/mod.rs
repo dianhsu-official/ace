@@ -6,9 +6,6 @@ pub mod model;
 mod parse;
 mod submit;
 mod test;
-use clap::Parser;
-use colored::Colorize;
-
 use self::account::AccountCommand;
 use self::config::ConfigCommand;
 use self::generate::GenerateCommand;
@@ -17,15 +14,54 @@ use self::model::Commands;
 use self::parse::ParseCommand;
 use self::submit::SubmitCommand;
 use crate::context::CONTEXT;
+use clap::Parser;
+use colored::Colorize;
+use log::LevelFilter;
+use std::io::Write;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+    #[arg(short, long)]
+    pub verbose: bool,
 }
 impl Cli {
     pub fn run() -> Result<(), String> {
         let cli = Cli::parse();
+        if cli.verbose {
+            env_logger::builder()
+                .format(|buf, record| {
+                    writeln!(
+                        buf,
+                        "[{} {}:{}] [{}] - {}",
+                        chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                        record.file().unwrap_or("unknown"),
+                        record.line().unwrap_or(0),
+                        record.level(),
+                        record.args()
+                    )
+                })
+                .filter(Some("ace"), LevelFilter::Info)
+                .write_style(env_logger::WriteStyle::Auto)
+                .init();
+        } else {
+            env_logger::builder()
+                .format(|buf, record| {
+                    writeln!(
+                        buf,
+                        "[{} {}:{}] [{}] - {}",
+                        chrono::Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                        record.file().unwrap_or("unknown"),
+                        record.line().unwrap_or(0),
+                        record.level(),
+                        record.args()
+                    )
+                })
+                .filter(Some("ace"), LevelFilter::Warn)
+                .write_style(env_logger::WriteStyle::Auto)
+                .init();
+        }
         match CONTEXT.lock() {
             Ok(mut context) => {
                 context.current_directory = match std::env::current_dir() {
