@@ -8,13 +8,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  pre-require:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-  build-linux:
-    needs: pre-require
+  build:
     env:
       RUST_BACKTRACE: full
     strategy:

@@ -15,50 +15,52 @@ pub struct TestCommand {}
 
 impl TestCommand {
     pub fn handle(args: TestArgs) -> Result<String, String> {
-        let current_path = match current_dir() {
-            Ok(current_path) => current_path,
+        let current_dir = match current_dir() {
+            Ok(current_dir) => current_dir,
             Err(_) => {
                 return Err("Cannot get current path".to_string());
+            }
+        };
+        let current_dir_str = match current_dir.to_str() {
+            Some(current_dir_str) => current_dir_str,
+            None => {
+                return Err("Can't get current path".to_string());
             }
         };
         let filename = match args.filename {
             Some(filename) => filename,
             None => {
-                let files = match fs::read_dir(current_path.clone()) {
-                    Ok(files) => files
-                        .into_iter()
-                        .filter_map(|x| match x {
-                            Ok(file) => match file.file_name().to_str() {
-                                Some(filename) => Some(filename.to_string()),
-                                None => None,
-                            },
-                            Err(_) => None,
-                        })
-                        .collect::<Vec<_>>(),
-                    Err(_) => {
-                        return Err("Cannot get current path".to_string());
+                let files = Utility::find_source_code_filename_from_directory(current_dir_str);
+                match files.len() {
+                    0 => {
+                        return Err("No code file found".to_string());
                     }
-                };
-                let filename = match Select::new("Select file to ", files).prompt() {
-                    Ok(filename) => filename,
-                    Err(_) => {
-                        return Err("Cannot get current path".to_string());
+                    1 => files[0].clone(),
+                    _ => {
+                        let filename = match Select::new("Select file to test: ", files).prompt()
+                        {
+                            Ok(filename) => filename,
+                            Err(info) => {
+                                log::error!("{}", info);
+                                return Err(info.to_string());
+                            }
+                        };
+                        filename
                     }
-                };
-                filename
+                }
             }
         };
-        if let Some(current_path_str) = current_path.to_str() {
+        if let Some(current_path_str) = current_dir.to_str() {
             if let Ok(mut context) = CONTEXT.lock() {
                 context.update(current_path_str);
             }
         }
-        let absolute_path = current_path.join(filename.clone());
+        let absolute_path = current_dir.join(filename.clone());
         let absolute_path_str = match absolute_path.to_str() {
-            Some(absolute_path_str) => {absolute_path_str},
+            Some(absolute_path_str) => absolute_path_str,
             None => {
                 return Err("Cannot get absolute path".to_string());
-            },
+            }
         };
         if let Ok(mut context) = CONTEXT.lock() {
             let path = Path::new(&filename);

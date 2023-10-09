@@ -29,37 +29,25 @@ impl SubmitCommand {
                 return Err("Cannot get current path".to_string());
             }
         };
+        let current_dir_str = match current_dir.to_str() {
+            Some(current_dir_str) => current_dir_str,
+            None => {
+                return Err("Can't get current path".to_string());
+            }
+        };
+
         let filename = match args.filename {
             Some(filename) => filename,
             None => {
-                let files = match fs::read_dir(current_dir.clone()) {
-                    Ok(files) => files
-                        .into_iter()
-                        .filter_map(|x| match x {
-                            Ok(file) => match file.file_name().to_str() {
-                                Some(filename) => {
-                                    if filename.starts_with("code.") {
-                                        Some(filename.to_string())
-                                    } else {
-                                        None
-                                    }
-                                }
-                                None => None,
-                            },
-                            Err(_) => None,
-                        })
-                        .collect::<Vec<_>>(),
-                    Err(_) => {
-                        return Err("Cannot get current path".to_string());
-                    }
-                };
+                let files = Utility::find_source_code_filename_from_directory(current_dir_str);
                 match files.len() {
                     0 => {
                         return Err("No code file found".to_string());
                     }
                     1 => files[0].clone(),
                     _ => {
-                        let filename = match Select::new("Select file to submit: ", files).prompt() {
+                        let filename = match Select::new("Select file to submit: ", files).prompt()
+                        {
                             Ok(filename) => filename,
                             Err(info) => {
                                 log::error!("{}", info);

@@ -23,7 +23,10 @@ impl Utility {
         workspace: &str,
     ) -> Result<(Platform, String, String), String> {
         if !cur_path.starts_with(workspace) {
-            return Err(format!("current path <{}> is not in workspace <{}>", cur_path, workspace));
+            return Err(format!(
+                "current path <{}> is not in workspace <{}>",
+                cur_path, workspace
+            ));
         }
         let relative_path = match cur_path.strip_prefix(&workspace) {
             Some(path) => path,
@@ -57,19 +60,23 @@ impl Utility {
             return Ok((*platform, contest_identifier, problem_identifier));
         }
     }
-    pub fn get_program_language_from_filename(filename: &str, platform: Platform) -> Result<ProgramLanguage, String> {
+    pub fn get_program_language_from_filename(
+        filename: &str,
+        platform: Platform,
+    ) -> Result<ProgramLanguage, String> {
         let suffix = match filename.split(".").last() {
             Some(suffix) => suffix,
             None => {
                 return Err("invalid filename".to_string());
             }
         };
-        let vec = match CONFIG_DB.get_language_submit_config_by_suffix_and_platform(&suffix, platform) {
-            Ok(vec) => vec,
-            Err(info) => {
-                return Err(info);
-            }
-        };
+        let vec =
+            match CONFIG_DB.get_language_submit_config_by_suffix_and_platform(&suffix, platform) {
+                Ok(vec) => vec,
+                Err(info) => {
+                    return Err(info);
+                }
+            };
         match vec.len() {
             0 => {
                 return Err(format!("cannot find language from suffix: {}", suffix));
@@ -104,6 +111,29 @@ impl Utility {
             idx += 1;
         }
         return Ok(test_cases);
+    }
+
+    pub fn find_source_code_filename_from_directory(directory: &str) -> Vec<String> {
+        let res = match std::fs::read_dir(directory) {
+            Ok(files) => files
+                .into_iter()
+                .filter_map(|x| match x {
+                    Ok(file) => match file.file_name().to_str() {
+                        Some(filename) => {
+                            if filename.starts_with("code.") {
+                                Some(filename.to_string())
+                            } else {
+                                None
+                            }
+                        }
+                        None => None,
+                    },
+                    Err(_) => None,
+                })
+                .collect::<Vec<_>>(),
+            Err(_) => Vec::new(),
+        };
+        return res;
     }
 }
 
