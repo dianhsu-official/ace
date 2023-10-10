@@ -211,7 +211,7 @@ impl SubmitCommand {
         language: ProgramLanguage,
         platform: Platform,
     ) -> Result<String, String> {
-        let language_configs = match CONFIG_DB.get_language_platform_config(language, platform) {
+        let language_configs = match CONFIG_DB.get_language_config_by_language_and_platform(language, platform) {
             Ok(language_configs) => language_configs,
             Err(info) => return Err(info),
         };

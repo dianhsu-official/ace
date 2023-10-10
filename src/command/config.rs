@@ -61,7 +61,7 @@ impl ConfigCommand {
                 table.printstd();
                 Ok(String::new())
             }
-            ConfigOptions::Set => {
+            ConfigOptions::Update => {
                 let config_list = CONFIG_DB
                     .list_config()
                     .into_iter()
@@ -84,7 +84,7 @@ impl ConfigCommand {
                     Err(info) => Err(info),
                 }
             }
-            ConfigOptions::Remove => {
+            ConfigOptions::Delete => {
                 let config_list = CONFIG_DB
                     .list_config()
                     .into_iter()

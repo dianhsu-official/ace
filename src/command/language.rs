@@ -1,4 +1,7 @@
+use colored::Colorize;
 use inquire::{Select, Text};
+use prettytable::row;
+use prettytable::Table;
 use strum::IntoEnumIterator;
 
 use super::model::LanguageArgs;
@@ -12,15 +15,46 @@ pub struct LanguageCommand {}
 impl LanguageCommand {
     pub fn handle(args: LanguageArgs) -> Result<String, String> {
         match args.options {
-            LanguageOptions::List => match CONFIG_DB.list_lang_config() {
-                Ok(_) => {
-                    return Ok(String::from("List language config success"));
+            LanguageOptions::List => {
+                let mut table = Table::new();
+                table.add_row(row![
+                    "alias",
+                    "suffix",
+                    "platform",
+                    "identifier",
+                    "submit_id",
+                    "submit_description",
+                    "template_path",
+                    "compile_command",
+                    "execute_command",
+                    "clear_command"
+                ]);
+                let language_configs = match CONFIG_DB.get_language_config() {
+                    Ok(configs) => {
+                        configs
+                    }
+                    Err(_) => {
+                        return Err(String::from("List language config failed"));
+                    }
+                };
+                for item in language_configs{
+                    table.add_row(row![
+                        item.alias,
+                        item.suffix,
+                        item.platform,
+                        item.identifier,
+                        item.submit_id,
+                        item.submit_description,
+                        item.template_path,
+                        item.compile_command,
+                        item.execute_command,
+                        item.clear_command
+                    ]);
                 }
-                Err(_) => {
-                    return Err(String::from("List language config failed"));
-                }
-            },
-            LanguageOptions::Set => {
+                table.printstd();
+                return Ok("".to_string())
+            }
+            LanguageOptions::Add => {
                 let languages: Vec<ProgramLanguage> = ProgramLanguage::iter().collect::<Vec<_>>();
                 let language_identifier = match Select::new(
                     "Choose a language to set compile and execute command:",
@@ -40,7 +74,7 @@ impl LanguageCommand {
                     }
                 };
                 let platform = match Select::new(
-                    "Choose a platform to set language:",
+                    "Choose target platform to set language:",
                     Platform::iter().collect::<Vec<_>>(),
                 )
                 .prompt()
@@ -50,25 +84,38 @@ impl LanguageCommand {
                         return Err(info.to_string());
                     }
                 };
-                let template_path =
-                    match Text::new("Enter the template path (allow empty): ").prompt() {
-                        Ok(value) => value,
-                        Err(_) => String::from(""),
-                    };
-                let compile_command =
-                    match Text::new("Enter the compile command (allow empty): ").prompt() {
-                        Ok(value) => value,
-                        Err(_) => String::from(""),
-                    };
-                let execute_command = match Text::new("Enter the execute command (allow empty): ").prompt() {
+                let template_path_prompt_message = format!(
+                    "Enter the template path(e.g. {}):",
+                    "C:\\Users\\dianhsu\\template\\any_fileame.cpp".bright_green()
+                );
+                let template_path = match Text::new(&template_path_prompt_message).prompt() {
                     Ok(value) => value,
                     Err(_) => String::from(""),
                 };
-                let clear_command =
-                    match Text::new("Enter the clear command (allow empty): ").prompt() {
-                        Ok(value) => value,
-                        Err(_) => String::from(""),
-                    };
+                let compile_command_prompt_message = format!(
+                    "Enter the compile command(e.g. {}):",
+                    "g++ -std=c++17 -O2 -Wall %$full$% -o a.out".bright_green()
+                );
+                let compile_command = match Text::new(&compile_command_prompt_message).prompt() {
+                    Ok(value) => value,
+                    Err(_) => String::from(""),
+                };
+                let execute_command_prompt_message = format!(
+                    "Enter the execute command(e.g. {}):",
+                    "./a.out".bright_green()
+                );
+                let execute_command = match Text::new(&execute_command_prompt_message).prompt() {
+                    Ok(value) => value,
+                    Err(_) => String::from(""),
+                };
+                let clear_command_prompt_message = format!(
+                    "Enter the clear command(e.g. {}):",
+                    "rm a.out".bright_green()
+                );
+                let clear_command = match Text::new(&clear_command_prompt_message).prompt() {
+                    Ok(value) => value,
+                    Err(_) => String::from(""),
+                };
                 let alias = match Text::new("Enter the alias: ").prompt() {
                     Ok(value) => value,
                     Err(_) => {
@@ -110,6 +157,7 @@ impl LanguageCommand {
                     Err(info) => Err(info),
                 }
             }
+            LanguageOptions::Delete => todo!()
         }
     }
 }

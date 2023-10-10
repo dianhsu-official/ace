@@ -26,7 +26,7 @@ pub enum AccountOptions {
     List,
     SetDefault,
     Update,
-    Remove,
+    Delete,
 }
 #[derive(Args)]
 pub struct AccountArgs {
@@ -45,9 +45,9 @@ pub enum ConfigOptions {
     /// List all config
     List,
     /// Set config value
-    Set,
+    Update,
     /// Remove config name and value
-    Remove,
+    Delete,
 }
 #[derive(Args)]
 pub struct ConfigArgs {
@@ -60,7 +60,9 @@ pub enum LanguageOptions {
     /// List all language config
     List,
     /// Set language config
-    Set,
+    Add,
+    /// Delete language config
+    Delete,
 }
 
 #[derive(Args)]

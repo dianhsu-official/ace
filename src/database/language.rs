@@ -1,5 +1,4 @@
 use inquire::Select;
-use prettytable::{Table, row};
 
 use super::ConfigDatabase;
 use crate::constants::ProgramLanguage;
@@ -59,7 +58,7 @@ impl ConfigDatabase {
         }
         return Ok(vec);
     }
-    pub fn get_language_platform_config(
+    pub fn get_language_config_by_language_and_platform(
         &self,
         language: ProgramLanguage,
         platform: Platform,
@@ -122,7 +121,7 @@ impl ConfigDatabase {
         }
         return Ok(res);
     }
-    pub fn get_language_config(&self, language: ProgramLanguage) -> Result<LanguageConfig, String> {
+    pub fn get_language_config_by_language(&self, language: ProgramLanguage) -> Result<LanguageConfig, String> {
         let query = String::from("SELECT alias, suffix, platform, identifier, submit_id, submit_description, template_path, compile_command, execute_command, clear_command FROM language WHERE identifier = ?");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
@@ -195,7 +194,7 @@ impl ConfigDatabase {
             }
         }
     }
-    pub fn list_lang_config(&self) -> Result<(), String> {
+    pub fn get_language_config(&self) -> Result<Vec<LanguageConfig>, String> {
         let query = String::from("SELECT alias, suffix, platform, identifier, submit_id, submit_description, template_path, compile_command, execute_command, clear_command FROM language");
         let stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
@@ -203,23 +202,11 @@ impl ConfigDatabase {
                 return Err(info.to_string());
             }
         };
-        let mut table = Table::new();
-        table.add_row(row![
-            "alias",
-            "suffix",
-            "platform",
-            "identifier",
-            "submit_id",
-            "submit_description",
-            "template_path",
-            "compile_command",
-            "execute_command",
-            "clear_command"
-        ]);
+        let mut res = Vec::new();
         for row in stmt.into_iter().filter_map(|x| match x {
             Ok(x) => Some(x),
             Err(_) => None,
-        }){
+        }) {
             let alias = row.read::<&str, _>("alias").to_string();
             let suffix = row.read::<&str, _>("suffix").to_string();
             let platform_str = row.read::<&str, _>("platform").to_string();
@@ -242,21 +229,20 @@ impl ConfigDatabase {
             let compile_command = row.read::<&str, _>("compile_command").to_string();
             let execute_command = row.read::<&str, _>("execute_command").to_string();
             let clear_command = row.read::<&str, _>("clear_command").to_string();
-            table.add_row(row![
-                alias,
-                suffix,
-                platform,
-                identifier,
-                submit_id,
-                submit_description,
-                template_path,
-                compile_command,
-                execute_command,
-                clear_command
-            ]);
+            res.push(LanguageConfig {
+                alias: alias,
+                suffix: suffix,
+                platform: platform,
+                identifier: identifier,
+                submit_id: submit_id,
+                submit_description: submit_description,
+                template_path: template_path,
+                compile_command: compile_command,
+                execute_command: execute_command,
+                clear_command: clear_command,
+            })
         }
-        table.printstd();
-        return Ok(())
+        return Ok(res);
     }
     pub fn set_lang_config(
         &self,

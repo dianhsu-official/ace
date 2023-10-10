@@ -98,7 +98,7 @@ impl TestCommand {
                 return Err(info);
             }
         };
-        let mut language_config = match CONFIG_DB.get_language_config(language) {
+        let mut language_config = match CONFIG_DB.get_language_config_by_language(language) {
             Ok(config) => config,
             Err(info) => {
                 return Err(info);

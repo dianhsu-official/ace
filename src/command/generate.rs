@@ -27,7 +27,7 @@ impl GenerateCommand {
                 }
             },
         };
-        let language = match CONFIG_DB.get_language_config(language) {
+        let language = match CONFIG_DB.get_language_config_by_language(language) {
             Ok(language) => language,
             Err(info) => {
                 return Err(info);

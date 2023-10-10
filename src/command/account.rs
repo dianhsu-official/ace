@@ -46,7 +46,7 @@ impl AccountCommand {
                     }
                 };
             }
-            AccountOptions::Remove => {
+            AccountOptions::Delete => {
                 let _ = match AccountUtility::remove_select_account(real_platform) {
                     Ok(_) => return Ok("Account removed.".to_string()),
                     Err(info) => {
