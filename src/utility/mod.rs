@@ -1,11 +1,9 @@
 use std::path;
 
-use inquire::Select;
-
 use crate::{
-    constants::{ProgramLanguage, PLATFORM_MAP},
+    constants::PLATFORM_MAP,
     database::CONFIG_DB,
-    model::Platform,
+    model::{LanguageConfig, Platform},
 };
 
 pub mod account;
@@ -60,35 +58,23 @@ impl Utility {
             return Ok((*platform, contest_identifier, problem_identifier));
         }
     }
-    pub fn get_program_language_from_filename(
+    pub fn get_language_config_by_filename_and_platform(
         filename: &str,
         platform: Platform,
-    ) -> Result<ProgramLanguage, String> {
+    ) -> Result<Vec<LanguageConfig>, String> {
         let suffix = match filename.split(".").last() {
             Some(suffix) => suffix,
             None => {
                 return Err("invalid filename".to_string());
             }
         };
-        let vec =
-            match CONFIG_DB.get_language_submit_config_by_suffix_and_platform(&suffix, platform) {
-                Ok(vec) => vec,
-                Err(info) => {
-                    return Err(info);
-                }
-            };
-        match vec.len() {
-            0 => {
-                return Err(format!("cannot find language from suffix: {}", suffix));
+        let vec = match CONFIG_DB.get_language_config_by_suffix_and_platform(&suffix, platform) {
+            Ok(vec) => vec,
+            Err(info) => {
+                return Err(info);
             }
-            1 => {
-                return Ok(vec[0].identifier.clone());
-            }
-            _ => {
-                let item = Select::new("Select language", vec).prompt().unwrap();
-                return Ok(item.identifier);
-            }
-        }
+        };
+        return Ok(vec);
     }
     pub fn get_test_cases_filename_from_current_location() -> Result<Vec<[String; 2]>, String> {
         let current_path = match std::env::current_dir() {
@@ -120,7 +106,7 @@ impl Utility {
                 .filter_map(|x| match x {
                     Ok(file) => match file.file_name().to_str() {
                         Some(filename) => {
-                            if filename.starts_with("code.") {
+                            if filename.starts_with("code") {
                                 Some(filename.to_string())
                             } else {
                                 None

@@ -1,6 +1,8 @@
 use std::fs::create_dir_all;
 use std::path;
 
+use colored::Colorize;
+
 use super::model::ParseArgs;
 use crate::constants::PLATFORM_MAP;
 use crate::database::CONFIG_DB;
@@ -47,6 +49,7 @@ impl ParseCommand {
                                 return Err(info);
                             }
                         };
+                        println!("Grab test case for {} success.", problem_info[0].bright_blue());
                         let problem_identifier = problem_info[0].clone();
                         contest_test_cases.push((problem_identifier, test_cases));
                     }
@@ -135,6 +138,7 @@ impl ParseCommand {
                     }
                 }
             }
+            println!("Save test case for {} success.", problem_identifier.bright_blue());
         }
         return Ok(String::from("Parse command success"));
     }

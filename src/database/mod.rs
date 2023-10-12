@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY AUTOINCREMENT, name TE
 CREATE TABLE IF NOT EXISTS account (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, username TEXT, password TEXT, cookies TEXT default \"\", last_use TEXT default \"1970-01-01T00:00:00+00:00\", current INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS language (
     id INTEGER PRIMARY KEY AUTOINCREMENT, 
-    alias TEXT UNIQUE, 
+    alias TEXT, 
     suffix TEXT, 
     platform TEXT, 
     identifier TEXT, 

@@ -55,7 +55,7 @@ impl HtmlParser {
         }
         let mut submission_info = SubmissionInfo::new();
         submission_info.submission_id = String::from(submission_id);
-        submission_info.identifier = String::from(problem_identifier);
+        submission_info.problem_identifier = String::from(problem_identifier);
         submission_info.verdict_info = status;
         submission_info.execute_time = execute_time;
         submission_info.execute_memory = execute_memory;
@@ -283,7 +283,7 @@ fn test_parse_submission_page() {
     let submission_info =
         HtmlParser::parse_submission_page("abc321_b", "46033672", &content).unwrap();
     assert_eq!(submission_info.submission_id, "46033672");
-    assert_eq!(submission_info.identifier, "abc321_b");
+    assert_eq!(submission_info.problem_identifier, "abc321_b");
     assert_eq!(submission_info.verdict_info, "WA");
 }
 

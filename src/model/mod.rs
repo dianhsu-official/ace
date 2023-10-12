@@ -15,7 +15,7 @@ pub enum Verdict {
 #[derive(Debug)]
 pub struct SubmissionInfo {
     pub submission_id: String,
-    pub identifier: String,
+    pub problem_identifier: String,
     pub verdict: Verdict,
     pub verdict_info: String,
     pub execute_time: String,
@@ -25,7 +25,7 @@ impl SubmissionInfo {
     pub fn new() -> SubmissionInfo {
         SubmissionInfo {
             submission_id: String::new(),
-            identifier: String::new(),
+            problem_identifier: String::new(),
             verdict: Verdict::Waiting,
             verdict_info: String::new(),
             execute_time: String::new(),
@@ -76,6 +76,7 @@ impl Display for LanguageSubmitConfig {
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LanguageConfig {
+    pub id: i64,
     pub alias: String,
     pub suffix: String,
     pub platform: Platform,
@@ -91,8 +92,8 @@ impl Display for LanguageConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}({}, {}, {})",
-            self.alias, self.suffix, self.identifier, self.submit_description
+            "{}({}, {}, {}, {})",
+            self.alias, self.suffix, self.identifier, self.submit_description, self.platform
         )
     }
 }
@@ -120,10 +121,6 @@ pub struct PlatformLanguage {
 
 impl Display for PlatformLanguage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.description
-        )
+        write!(f, "{}", self.description)
     }
 }

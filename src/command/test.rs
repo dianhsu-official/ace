@@ -1,3 +1,4 @@
+use colored::Colorize;
 use inquire::Select;
 
 use crate::context::CONTEXT;
@@ -37,7 +38,7 @@ impl TestCommand {
                     }
                     1 => files[0].clone(),
                     _ => {
-                        let filename = match Select::new("Select file to test: ", files).prompt()
+                        let filename = match Select::new("Select file to test(you can only select file which filename startwith `code`): ", files).prompt()
                         {
                             Ok(filename) => filename,
                             Err(info) => {
@@ -92,18 +93,26 @@ impl TestCommand {
                     return Err(info);
                 }
             };
-        let language = match Utility::get_program_language_from_filename(&filename, platform) {
-            Ok(language) => language,
-            Err(info) => {
-                return Err(info);
+        let language_configs =
+            match Utility::get_language_config_by_filename_and_platform(&filename, platform) {
+                Ok(configs) => configs,
+                Err(info) => {
+                    return Err(info);
+                }
+            };
+        let mut language_config = match language_configs.len() {
+            0 => {
+                return Err("Cannot find language config".to_string());
             }
+            1 => language_configs[0].clone(),
+            _ => match Select::new("Select language config", language_configs).prompt() {
+                Ok(language_config) => language_config,
+                Err(info) => {
+                    return Err(info.to_string());
+                }
+            },
         };
-        let mut language_config = match CONFIG_DB.get_language_config_by_language(language) {
-            Ok(config) => config,
-            Err(info) => {
-                return Err(info);
-            }
-        };
+        println!("Test with language config: {}", language_config);
         if let Ok(context) = CONTEXT.lock() {
             language_config.compile_command =
                 Snippet::replace(&context, &language_config.compile_command);
@@ -158,6 +167,7 @@ impl TestCommand {
         execute_command: &str,
         clear_command: &str,
     ) -> Result<String, String> {
+        println!("Compile with command: {}", compile_command.bright_blue());
         if let Err(info) = Self::run_no_input_command(compile_command) {
             return Err(info);
         }
@@ -167,7 +177,7 @@ impl TestCommand {
                 return Err(info);
             }
         };
-
+        println!("Test with command: {}", execute_command.bright_blue());
         for case in test_cases {
             let input_file = case[0].clone();
             let output_file = case[1].clone();
@@ -211,7 +221,12 @@ impl TestCommand {
                             }
                         }
                         if stdout_str != file_out {
-                            return Err(format!("Test failed: \noutput:\n---------------\n{}----------\nexpect:\n--------------------\n{}", stdout_str, file_out));
+                            println!("Case {} test failed", input_file.bright_blue());
+                            println!("Real output: \n{}", stdout_str);
+                            println!("Expect output: \n{}", file_out);
+                            return Err(format!("Test failed on case {}", input_file));
+                        } else {
+                            println!("Case {} test success", input_file.bright_blue());
                         }
                     }
                     None => {
@@ -255,6 +270,8 @@ impl TestCommand {
                 }
             }
         }
+
+        println!("Clear with command: {}", clear_command.bright_blue());
         if let Err(info) = Self::run_no_input_command(clear_command) {
             return Err(info);
         }

@@ -63,10 +63,12 @@ pub struct ConfigArgs {
 pub enum LanguageOptions {
     /// List all language config
     List,
-    /// Set language config
+    /// Add language config
     Add,
     /// Delete language config
     Delete,
+    /// Set default language
+    SetDefault,
 }
 
 #[derive(Args)]

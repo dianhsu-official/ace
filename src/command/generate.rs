@@ -23,7 +23,7 @@ impl GenerateCommand {
                     Err(_) => return Err("Can't convert default language".to_string()),
                 },
                 Err(_) => {
-                    return Err("Default language not set".to_string());
+                    return Err("Default language not set, Run `ace lang set-default`".to_string());
                 }
             },
         };

@@ -2,7 +2,6 @@ use inquire::Select;
 
 use super::model::SubmitArgs;
 use crate::{
-    constants::ProgramLanguage,
     database::CONFIG_DB,
     model::{Platform, Verdict},
     platform::atcoder::AtCoder,
@@ -99,6 +98,7 @@ impl SubmitCommand {
                     let mut retry_times = 100;
                     while submission_info.verdict == Verdict::Waiting && retry_times > 0 {
                         retry_times -= 1;
+                        print!("...");
                         thread::sleep(Duration::from_secs(1));
                         submission_info = match cf
                             .retrive_result(&submit_info.problem_identifier, &submission_id)
@@ -112,7 +112,8 @@ impl SubmitCommand {
                     if submission_info.verdict == Verdict::Waiting {
                         return Err("Cannot get submission info".to_string());
                     } else {
-                        return Ok(format!("Submission result: {:?}", submission_info));
+                        println!("\nsubmission id: {}\nproblem: {}\nverdict: {}\nexecute time: {}\nexecute memory: {}\n", submission_info.submission_id, submission_info.problem_identifier, submission_info.verdict_info, submission_info.execute_time, submission_info.execute_memory);
+                        return Ok("Submit success".to_string());
                     }
                 }
                 Platform::AtCoder => {
@@ -141,6 +142,7 @@ impl SubmitCommand {
                             }
                         };
                     let mut retry_times = 100;
+
                     while submission_info.verdict == Verdict::Waiting && retry_times > 0 {
                         retry_times -= 1;
                         thread::sleep(Duration::from_secs(1));
@@ -156,7 +158,8 @@ impl SubmitCommand {
                     if submission_info.verdict == Verdict::Waiting {
                         return Err("Cannot get submission info".to_string());
                     } else {
-                        return Ok(format!("Submission result: {:?}", submission_info));
+                        println!("\nsubmission id: {}\nproblem: {}\nverdict: {}\nexecute time: {}\nexecute memory: {}\n", submission_info.submission_id, submission_info.problem_identifier, submission_info.verdict_info, submission_info.execute_time, submission_info.execute_memory);
+                        return Ok("Submit success".to_string());
                     }
                 }
             },
@@ -181,13 +184,7 @@ impl SubmitCommand {
                     return Err(info);
                 }
             };
-        let language = match Utility::get_program_language_from_filename(filename, platform) {
-            Ok(language) => language,
-            Err(info) => {
-                return Err(info);
-            }
-        };
-        let language_id = match SubmitCommand::get_submit_language_id(language, platform) {
+        let language_id = match Self::get_submit_language_id(filename, platform) {
             Ok(language_id) => language_id,
             Err(info) => {
                 return Err(info);
@@ -207,14 +204,14 @@ impl SubmitCommand {
             contest_identifier,
         });
     }
-    fn get_submit_language_id(
-        language: ProgramLanguage,
-        platform: Platform,
-    ) -> Result<String, String> {
-        let language_configs = match CONFIG_DB.get_language_config_by_language_and_platform(language, platform) {
-            Ok(language_configs) => language_configs,
-            Err(info) => return Err(info),
-        };
+    fn get_submit_language_id(filename: &str, platform: Platform) -> Result<String, String> {
+        let language_configs =
+            match Utility::get_language_config_by_filename_and_platform(filename, platform) {
+                Ok(language) => language,
+                Err(info) => {
+                    return Err(info);
+                }
+            };
         match language_configs.len() {
             0 => {
                 return Err(format!(

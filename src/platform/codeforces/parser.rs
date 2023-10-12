@@ -187,7 +187,7 @@ impl HtmlParser {
             return Err(format!("Td count is not 11, but {}", vec.len()));
         }
         submission_info.submission_id = submission_id.to_string();
-        submission_info.identifier = format!("{}{}", contest_id, problem_id);
+        submission_info.problem_identifier = format!("{}{}", contest_id, problem_id);
         submission_info.verdict_info = vec[4].text().collect::<String>().trim().to_string();
         if submission_info.verdict_info.contains("Running")
             || submission_info.verdict_info.contains("queue")

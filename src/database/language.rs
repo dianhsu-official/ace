@@ -2,15 +2,15 @@ use inquire::Select;
 
 use super::ConfigDatabase;
 use crate::constants::ProgramLanguage;
-use crate::model::{LanguageConfig, LanguageSubmitConfig, Platform};
+use crate::model::{LanguageConfig, Platform};
 use std::str::FromStr;
 impl ConfigDatabase {
-    pub fn get_language_submit_config_by_suffix_and_platform(
+    pub fn get_language_config_by_suffix_and_platform(
         &self,
         suffix: &str,
         platform: Platform,
-    ) -> Result<Vec<LanguageSubmitConfig>, String> {
-        let query = String::from("SELECT alias, suffix, platform, identifier, submit_id, submit_description FROM language WHERE suffix = ? and platform = ?");
+    ) -> Result<Vec<LanguageConfig>, String> {
+        let query = String::from("SELECT id, alias, suffix, platform, identifier, submit_id, submit_description, template_path, compile_command, execute_command, clear_command FROM language WHERE suffix = ? and platform = ?");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
             Err(info) => {
@@ -29,6 +29,7 @@ impl ConfigDatabase {
             Ok(row) => Some(row),
             Err(_) => None,
         }) {
+            let id = row.read::<i64, _>("id");
             let alias = row.read::<&str, _>("alias").to_string();
             let suffix = row.read::<&str, _>("suffix").to_string();
             let platform_str = row.read::<&str, _>("platform").to_string();
@@ -47,65 +48,12 @@ impl ConfigDatabase {
                     return Err(info.to_string());
                 }
             };
-            vec.push(LanguageSubmitConfig {
-                alias,
-                suffix,
-                platform,
-                identifier,
-                submit_id,
-                submit_description,
-            })
-        }
-        return Ok(vec);
-    }
-    pub fn get_language_config_by_language_and_platform(
-        &self,
-        language: ProgramLanguage,
-        platform: Platform,
-    ) -> Result<Vec<LanguageConfig>, String> {
-        let query = String::from("SELECT alias, suffix, platform, identifier, submit_id, submit_description, template_path, compile_command, execute_command, clear_command FROM language WHERE identifier = ? and platform = ?");
-        let language_str = language.to_string();
-        let platform_str = platform.to_string();
-        let mut stmt = match self.connection.prepare(query) {
-            Ok(stmt) => stmt,
-            Err(info) => {
-                return Err(info.to_string());
-            }
-        };
-        if let Err(info) = stmt.bind((1, language_str.as_str())) {
-            return Err(info.to_string());
-        }
-        if let Err(info) = stmt.bind((2, platform_str.as_str())) {
-            return Err(info.to_string());
-        }
-        let mut res = Vec::new();
-        for item in stmt.into_iter().filter_map(|x| match x {
-            Ok(x) => Some(x),
-            Err(_) => None,
-        }) {
-            let alias = item.read::<&str, _>("alias").to_string();
-            let suffix = item.read::<&str, _>("suffix").to_string();
-            let platform_str = item.read::<&str, _>("platform").to_string();
-            let platform = match Platform::from_str(platform_str.as_str()) {
-                Ok(platform) => platform,
-                Err(info) => {
-                    return Err(info.to_string());
-                }
-            };
-            let identifier_str = item.read::<&str, _>("identifier").to_string();
-            let identifier = match ProgramLanguage::from_str(identifier_str.as_str()) {
-                Ok(identifier) => identifier,
-                Err(info) => {
-                    return Err(info.to_string());
-                }
-            };
-            let submit_id = item.read::<&str, _>("submit_id").to_string();
-            let submit_description = item.read::<&str, _>("submit_description").to_string();
-            let template_path = item.read::<&str, _>("template_path").to_string();
-            let compile_command = item.read::<&str, _>("compile_command").to_string();
-            let execute_command = item.read::<&str, _>("execute_command").to_string();
-            let clear_command = item.read::<&str, _>("clear_command").to_string();
-            let language_config = LanguageConfig {
+            let template_path = row.read::<&str, _>("template_path").to_string();
+            let compile_command = row.read::<&str, _>("compile_command").to_string();
+            let execute_command = row.read::<&str, _>("execute_command").to_string();
+            let clear_command = row.read::<&str, _>("clear_command").to_string();
+            vec.push(LanguageConfig {
+                id,
                 alias,
                 suffix,
                 platform,
@@ -116,13 +64,15 @@ impl ConfigDatabase {
                 compile_command,
                 execute_command,
                 clear_command,
-            };
-            res.push(language_config);
+            })
         }
-        return Ok(res);
+        return Ok(vec);
     }
-    pub fn get_language_config_by_language(&self, language: ProgramLanguage) -> Result<LanguageConfig, String> {
-        let query = String::from("SELECT alias, suffix, platform, identifier, submit_id, submit_description, template_path, compile_command, execute_command, clear_command FROM language WHERE identifier = ?");
+    pub fn get_language_config_by_language(
+        &self,
+        language: ProgramLanguage,
+    ) -> Result<LanguageConfig, String> {
+        let query = String::from("SELECT id, alias, suffix, platform, identifier, submit_id, submit_description, template_path, compile_command, execute_command, clear_command FROM language WHERE identifier = ?");
         let mut stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
             Err(info) => {
@@ -138,6 +88,7 @@ impl ConfigDatabase {
             Ok(row) => Some(row),
             Err(_) => None,
         }) {
+            let id = row.read::<i64, _>("id");
             let alias = row.read::<&str, _>("alias").to_string();
             let suffix = row.read::<&str, _>("suffix").to_string();
             let platform_str = row.read::<&str, _>("platform").to_string();
@@ -161,6 +112,7 @@ impl ConfigDatabase {
             let execute_command = row.read::<&str, _>("execute_command").to_string();
             let clear_command = row.read::<&str, _>("clear_command").to_string();
             res.push(LanguageConfig {
+                id,
                 alias,
                 suffix,
                 platform,
@@ -195,7 +147,7 @@ impl ConfigDatabase {
         }
     }
     pub fn get_language_config(&self) -> Result<Vec<LanguageConfig>, String> {
-        let query = String::from("SELECT alias, suffix, platform, identifier, submit_id, submit_description, template_path, compile_command, execute_command, clear_command FROM language");
+        let query = String::from("SELECT id, alias, suffix, platform, identifier, submit_id, submit_description, template_path, compile_command, execute_command, clear_command FROM language");
         let stmt = match self.connection.prepare(query) {
             Ok(stmt) => stmt,
             Err(info) => {
@@ -207,6 +159,7 @@ impl ConfigDatabase {
             Ok(x) => Some(x),
             Err(_) => None,
         }) {
+            let id = row.read::<i64, _>("id");
             let alias = row.read::<&str, _>("alias").to_string();
             let suffix = row.read::<&str, _>("suffix").to_string();
             let platform_str = row.read::<&str, _>("platform").to_string();
@@ -230,6 +183,7 @@ impl ConfigDatabase {
             let execute_command = row.read::<&str, _>("execute_command").to_string();
             let clear_command = row.read::<&str, _>("clear_command").to_string();
             res.push(LanguageConfig {
+                id: id,
                 alias: alias,
                 suffix: suffix,
                 platform: platform,
@@ -244,7 +198,28 @@ impl ConfigDatabase {
         }
         return Ok(res);
     }
-    pub fn set_lang_config(
+    #[allow(dead_code)]
+    pub fn remove_lang_config(&self, language_config_ids: Vec<i64>) -> Result<(), String> {
+        let query = format!(
+            "DELETE FROM language WHERE id in ('{}')",
+            language_config_ids
+                .into_iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join("','")
+        );
+        let mut stmt = match self.connection.prepare(query) {
+            Ok(stmt) => stmt,
+            Err(info) => {
+                return Err(info.to_string());
+            }
+        };
+        match stmt.next() {
+            Ok(_) => Ok(()),
+            Err(info) => Err(info.to_string()),
+        }
+    }
+    pub fn add_lang_config(
         &self,
         alias: &str,
         suffix: &str,
