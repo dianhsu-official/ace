@@ -9,23 +9,27 @@ pub enum Commands {
     Config(ConfigArgs),
     /// Manage language for ace, such as set, list
     Lang(LanguageArgs),
-    /// Parse the problem
+    /// Parse the test cases from the contest
     Parse(ParseArgs),
-    /// Generate template
+    /// Generate code file from template
     Gen(GenerateArgs),
-    /// Submit the code
+    /// Submit the code to target platform, such as atcoder, codeforces
     Submit(SubmitArgs),
-
-    /// Test the code
+    /// Run the code locally, and compare the output with the answer
     Test(TestArgs),
 }
 
 #[derive(Subcommand)]
 pub enum AccountOptions {
+    /// Create a new account
     Add,
+    /// List all accounts
     List,
+    /// Set default account
     SetDefault,
+    /// Update account password
     Update,
+    /// Remove account
     Delete,
 }
 #[derive(Args)]
