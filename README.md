@@ -1,30 +1,91 @@
 # ACE
 > Developing.
 
-[![Rust](https://github.com/dianhsu/ace/actions/workflows/test.yml/badge.svg)](https://github.com/dianhsu/ace/actions/workflows/test.yml)
+[![ACE](https://github.com/dianhsu/ace/actions/workflows/test.yml/badge.svg)](https://github.com/dianhsu/ace/actions/workflows/test.yml)
+
 
 ACE is a command-line interface tool for Algorithm Contest, just like: Codeforces, Atcoder, etc.
 
-## Current Progress
+[Installation](#installation) | [Usage](#usage) | [Current developing progress](#current-developing-progress) | [Snippets](#snippets)
 
-### Platform Spec
-
-|                  | Atcoder | Codeforces |
-| ---------------- | ------- | ---------- |
-| Check login      | ✅       | ✅          |
-| Login            | ✅       | ✅          |
-| Import cookies   | ✅       | ✅          |
-| Save cookies     | ✅       | ✅          |
-| Submit code      | ✅       | ✅          |
-| Retrieve result  | ✅       | ✅          |
-| Get problem list | ✅       | ✅          |
-| Get test cases   | ✅       | ✅          |
-| Get contest      | ✅       | ✅          |
+## Features
+- Support AtCoder and Codeforces.
+- Support Multiple accounts for these platforms.
+- Same experience with cf-tool (Partial right now).
 
 
-## Commands
 
-###  Generic 
+## Installation
+
+For now, download latest binary from `Github Actions`, find binary file from Artifacts which match your system.
+
+Github Action Url: https://github.com/dianhsu/ace/actions/workflows/release.yml
+
+## Usage
+
+**Manage accounts for atcoder or codeforces**
+`ace account` 
+```
+Manage account for ace, such as add, remove, list
+
+Usage: ace.exe account [OPTIONS] <COMMAND>
+
+Commands:
+  add          Create a new account
+  list         List all accounts
+  set-default  Set default account
+  update       Update account password
+  delete       Remove account
+  help         Print this message or the help of the given subcommand(s)
+
+Options:
+  -p, --platform <PLATFORM>
+  -h, --help                 Print help
+```
+
+**Manage submit language, code template and execute scripts for atcoder or codeforces**
+`ace lang`
+```
+Manage language for ace, such as set, list
+
+Usage: ace.exe lang <COMMAND>
+
+Commands:
+  list         List all language config
+  add          Add language config
+  delete       Delete language config
+  set-default  Set default language
+  help         Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+**Parse contest from atcoder or codeforces**
+`ace parse`
+
+e.g. 
+`ace parse cf 1888`: parse codeforces contest of 1880
+`ace parse atc abc321`: parse atcoder contest of abc321
+
+
+**Generate code file from template**
+`ace gen`
+This command should run in contest directory.
+
+**Test my code locally**
+`ace test`
+This command should run in contest directory.
+
+**Submit my code to atcoder or codeforces**
+`ace submit`
+This command should run in contest directory.
+
+----------------
+## Current developing progress
+
+### Commands
+
 
 | Command     | Description                                       | Progress   |
 | ----------- | ------------------------------------------------- | ---------- |
@@ -37,7 +98,8 @@ ACE is a command-line interface tool for Algorithm Contest, just like: Codeforce
 | ace test    | local run test                                    | ✅          |
 | *ace race   | start race                                        | Pending    |
 | *ace debug  | start debug file                                  | Scheduling |
-## Snippets
+
+### Snippets
 
 You can insert some snippets into your template code or command. When generate a code from template or execute your command, ace will replace all snippets by following rules.
 
