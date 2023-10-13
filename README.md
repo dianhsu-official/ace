@@ -24,7 +24,9 @@ Github Action Url: https://github.com/dianhsu/ace/actions/workflows/release.yml
 ## Usage
 
 **Manage accounts for atcoder or codeforces**
+
 `ace account` 
+
 ```
 Manage account for ace, such as add, remove, list
 
@@ -44,7 +46,9 @@ Options:
 ```
 
 **Manage submit language, code template and execute scripts for atcoder or codeforces**
+
 `ace lang`
+
 ```
 Manage language for ace, such as set, list
 
@@ -62,23 +66,32 @@ Options:
 ```
 
 **Parse contest from atcoder or codeforces**
+
 `ace parse`
 
 e.g. 
+
 `ace parse cf 1888`: parse codeforces contest of 1880
+
 `ace parse atc abc321`: parse atcoder contest of abc321
 
 
 **Generate code file from template**
+
 `ace gen`
+
 This command should run in contest directory.
 
 **Test my code locally**
+
 `ace test`
+
 This command should run in contest directory.
 
 **Submit my code to atcoder or codeforces**
+
 `ace submit`
+
 This command should run in contest directory.
 
 ----------------
