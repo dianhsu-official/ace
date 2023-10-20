@@ -1,7 +1,6 @@
 name: ACE Release
 
 on:
-  push:
   workflow_dispatch:
 
 env:
