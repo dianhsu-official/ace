@@ -125,41 +125,27 @@ impl TestCommand {
             &language_config.compile_command,
             &language_config.execute_command,
             &language_config.clear_command,
-        ).await;
+        )
+        .await;
     }
     fn run_no_input_command(single_command: &str) -> Result<String, String> {
-        if cfg!(target_os = "windows") {
-            log::info!("run command: powershell -c {}", single_command);
-            let output = Command::new("powershell")
-                .args(["-c", single_command])
-                .stdin(Stdio::null())
-                .output()
-                .expect("failed to execute process");
-            if !output.status.success() {
-                let stderr = match String::from_utf8(output.stderr) {
-                    Ok(stderr) => stderr,
-                    Err(_) => String::from("Cannot get stderr"),
-                };
-                return Err(stderr);
-            } else {
-                return Ok("Execute success".to_string());
-            }
+        let mut command = match cfg!(target_os = "windows") {
+            true => Command::new("powershell"),
+            false => Command::new("sh"),
+        };
+        let output = command
+            .args(["-c", single_command])
+            .stdin(Stdio::null())
+            .output()
+            .expect("failed to execute process");
+        if !output.status.success() {
+            let stderr = match String::from_utf8(output.stderr) {
+                Ok(stderr) => stderr,
+                Err(_) => String::from("Cannot get stderr"),
+            };
+            return Err(stderr);
         } else {
-            log::info!("run command: sh -c {}", single_command);
-            let output = Command::new("sh")
-                .args(["-c", single_command])
-                .stdin(Stdio::null())
-                .output()
-                .expect("failed to execute process");
-            if !output.status.success() {
-                let stderr = match String::from_utf8(output.stderr) {
-                    Ok(stderr) => stderr,
-                    Err(_) => String::from("Cannot get stderr"),
-                };
-                return Err(stderr);
-            } else {
-                return Ok("Execute success".to_string());
-            }
+            return Ok("Execute success".to_string());
         }
     }
     async fn run_test_commands(
@@ -167,6 +153,7 @@ impl TestCommand {
         execute_command: &str,
         clear_command: &str,
     ) -> Result<String, String> {
+        // Run compile command
         println!("Compile with command: {}", compile_command.bright_blue());
         if let Err(info) = Self::run_no_input_command(compile_command) {
             return Err(info);
@@ -177,6 +164,8 @@ impl TestCommand {
                 return Err(info);
             }
         };
+
+        // Run test command
         println!("Test with command: {}", execute_command.bright_blue());
         for case in test_cases {
             let input_file = case[0].clone();
@@ -193,84 +182,52 @@ impl TestCommand {
                     return Err(info.to_string());
                 }
             };
-            if cfg!(target_os = "windows") {
-                let command = Command::new("powershell")
-                    .args(["-c", execute_command])
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .expect("failed to execute process");
-                match command.stdin {
-                    Some(mut stdin) => match stdin.write_all(file_in.as_bytes()) {
+            let mut command = match cfg!(target_os = "windows") {
+                true => Command::new("powershell"),
+                false => Command::new("sh"),
+            };
+            let child = command
+                .args(["-c", execute_command])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn()
+                .expect("failed to execute process");
+            match child.stdin {
+                Some(mut stdin) => match stdin.write_all(file_in.as_bytes()) {
+                    Ok(_) => {}
+                    Err(info) => {
+                        return Err(info.to_string());
+                    }
+                },
+                None => {
+                    return Err("Cannot get stdin".to_string());
+                }
+            }
+            match child.stdout {
+                Some(mut stdout) => {
+                    let mut stdout_str = String::new();
+                    match stdout.read_to_string(&mut stdout_str) {
                         Ok(_) => {}
                         Err(info) => {
                             return Err(info.to_string());
                         }
-                    },
-                    None => {
-                        return Err("Cannot get stdin".to_string());
+                    }
+                    if stdout_str != file_out {
+                        println!("Case {} test failed", input_file.bright_blue());
+                        println!("Real output: \n{}", stdout_str);
+                        println!("Expect output: \n{}", file_out);
+                        return Err(format!("Test failed on case {}", input_file));
+                    } else {
+                        println!("Case {} test success", input_file.bright_blue());
                     }
                 }
-                match command.stdout {
-                    Some(mut stdout) => {
-                        let mut stdout_str = String::new();
-                        match stdout.read_to_string(&mut stdout_str) {
-                            Ok(_) => {}
-                            Err(info) => {
-                                return Err(info.to_string());
-                            }
-                        }
-                        if stdout_str != file_out {
-                            println!("Case {} test failed", input_file.bright_blue());
-                            println!("Real output: \n{}", stdout_str);
-                            println!("Expect output: \n{}", file_out);
-                            return Err(format!("Test failed on case {}", input_file));
-                        } else {
-                            println!("Case {} test success", input_file.bright_blue());
-                        }
-                    }
-                    None => {
-                        return Err("Cannot get stdout".to_string());
-                    }
-                }
-            } else {
-                let command = Command::new("sh")
-                    .args(["-c", execute_command])
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .expect("failed to execute process");
-                match command.stdin {
-                    Some(mut stdin) => match stdin.write_all(file_in.as_bytes()) {
-                        Ok(_) => {}
-                        Err(info) => {
-                            return Err(info.to_string());
-                        }
-                    },
-                    None => {
-                        return Err("Cannot get stdin".to_string());
-                    }
-                }
-                match command.stdout {
-                    Some(mut stdout) => {
-                        let mut stdout_str = String::new();
-                        match stdout.read_to_string(&mut stdout_str) {
-                            Ok(_) => {}
-                            Err(info) => {
-                                return Err(info.to_string());
-                            }
-                        }
-                        if stdout_str != file_out {
-                            return Err(format!("Test failed: \noutput:\n---------------\n{}----------\nexpect:\n--------------------\n{}", stdout_str, file_out));
-                        }
-                    }
-                    None => {
-                        return Err("Cannot get stdout".to_string());
-                    }
+                None => {
+                    return Err("Cannot get stdout".to_string());
                 }
             }
         }
 
+        // Run clear command
         println!("Clear with command: {}", clear_command.bright_blue());
         if let Err(info) = Self::run_no_input_command(clear_command) {
             return Err(info);
