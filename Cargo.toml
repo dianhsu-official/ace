@@ -10,7 +10,6 @@ repository = "https://github.com/dianhsu/ace"
 
 [dependencies]
 aes = "0.8.3"
-async-std = { version = "1.12.0", features = ["attributes"] }
 async-trait = "0.1.74"
 cbc = "0.1.2"
 chrono = "0.4.31"

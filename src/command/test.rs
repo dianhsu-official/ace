@@ -217,16 +217,10 @@ impl TestCommand {
                         println!("Case {} test failed", input_file.bright_blue());
                         for change in diff.iter_all_changes() {
                             match change.tag() {
-                                ChangeTag::Delete => {
-                                    println!("{}", format!("-{}", change).bright_red());
-                                }
-                                ChangeTag::Insert => {
-                                    println!("{}", format!("+{}", change).bright_green());
-                                }
-                                ChangeTag::Equal => {
-                                    println!("{}", change);
-                                }
-                            }
+                                ChangeTag::Delete => print!("{}", format!("-{}", change).red()),
+                                ChangeTag::Equal => print!("{}", format!(" {}", change)),
+                                ChangeTag::Insert => print!("{}", format!("+{}", change).green()),
+                            };
                         }
                         return Err(format!("Test failed on case {}", input_file));
                     } else {
