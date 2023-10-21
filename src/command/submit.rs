@@ -9,8 +9,8 @@ use crate::{
     traits::OnlineJudge,
     utility::Utility,
 };
-use std::{env::current_dir, fs, thread, time::Duration};
-
+use std::{env::current_dir, thread, time::Duration};
+use tokio::fs;
 pub struct SubmitCommand {}
 #[derive(Debug)]
 pub struct SubmitInfo {
@@ -59,7 +59,7 @@ impl SubmitCommand {
             }
         };
         let submit_info = match current_dir.join(filename.clone()).to_str() {
-            Some(file_path) => match Self::get_submit_info(&filename, file_path) {
+            Some(file_path) => match Self::get_submit_info(&filename, file_path).await {
                 Ok(submit_info) => Some(submit_info),
                 Err(info) => {
                     log::error!("{}", info);
@@ -170,7 +170,7 @@ impl SubmitCommand {
     }
 }
 impl SubmitCommand {
-    fn get_submit_info(filename: &str, file_path: &str) -> Result<SubmitInfo, String> {
+    async fn get_submit_info(filename: &str, file_path: &str) -> Result<SubmitInfo, String> {
         let workspace = match CONFIG_DB.get_config("workspace") {
             Ok(workspace) => workspace,
             Err(info) => {
@@ -190,7 +190,7 @@ impl SubmitCommand {
                 return Err(info);
             }
         };
-        let code = match fs::read_to_string(file_path) {
+        let code = match fs::read_to_string(file_path).await {
             Ok(code) => code,
             Err(info) => {
                 return Err(info.to_string());

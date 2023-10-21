@@ -1,4 +1,4 @@
-use std::fs::create_dir_all;
+use tokio::fs;
 use std::path;
 
 use colored::Colorize;
@@ -106,7 +106,7 @@ impl ParseCommand {
         let contest_path = path::Path::new(workspace.as_str())
             .join(platform_str)
             .join(args.contest_identifier.to_lowercase());
-        match create_dir_all(contest_path.clone()) {
+        match fs::create_dir_all(contest_path.clone()).await {
             Ok(_) => {}
             Err(_) => {
                 return Err(String::from("Create contest directory failed"));
@@ -119,7 +119,7 @@ impl ParseCommand {
             }
             let contest_problem_identifier = vec[1];
             let problem_path = contest_path.join(contest_problem_identifier.to_lowercase());
-            match create_dir_all(problem_path.clone()) {
+            match fs::create_dir_all(problem_path.clone()).await {
                 Ok(_) => {}
                 Err(_) => {
                     return Err(String::from("Create problem directory failed"));
@@ -128,13 +128,13 @@ impl ParseCommand {
             for (index, test_case) in test_cases.iter().enumerate() {
                 let input_path = problem_path.clone().join(format!("{:03}i.txt", index + 1));
                 let output_path = problem_path.clone().join(format!("{:03}o.txt", index + 1));
-                match std::fs::write(input_path, test_case.input.as_bytes()) {
+                match fs::write(input_path, test_case.input.as_bytes()).await {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(String::from("Write input file failed"));
                     }
                 }
-                match std::fs::write(output_path, test_case.output.as_bytes()) {
+                match fs::write(output_path, test_case.output.as_bytes()).await {
                     Ok(_) => {}
                     Err(_) => {
                         return Err(String::from("Write output file failed"));

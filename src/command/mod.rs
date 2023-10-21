@@ -79,9 +79,9 @@ impl Cli {
             Commands::Config(args) => ConfigCommand::handle(args),
             Commands::Lang(args) => LanguageCommand::handle(args),
             Commands::Parse(args) => ParseCommand::handle(args).await,
-            Commands::Gen(args) => GenerateCommand::handle(args),
+            Commands::Gen(args) => GenerateCommand::handle(args).await,
             Commands::Submit(args) => SubmitCommand::handle(args).await,
-            Commands::Test(args) => test::TestCommand::handle(args),
+            Commands::Test(args) => test::TestCommand::handle(args).await,
         };
         match res {
             Ok(res) => {

@@ -1,11 +1,10 @@
-use std::{collections::HashMap, fs::File, io::Write, path::Path, sync::Arc};
-
 use reqwest::{
-    Client as ReqwestClient,
     cookie::{CookieStore, Jar},
     header::HeaderValue,
-    Url,
+    Client as ReqwestClient, Url,
 };
+use std::{collections::HashMap, path::Path, sync::Arc};
+use tokio::{fs, io::AsyncWriteExt};
 
 pub struct HttpClient {
     client: ReqwestClient,
@@ -52,7 +51,11 @@ impl HttpClient {
         }
     }
 
-    pub async fn post_form(&mut self, url: &str, form: &HashMap<&str, &str>) -> Result<String, String> {
+    pub async fn post_form(
+        &mut self,
+        url: &str,
+        form: &HashMap<&str, &str>,
+    ) -> Result<String, String> {
         log::info!("post data {:?} to {}.", form, url);
         let res = match self.client.post(url).form(&form).send().await {
             Ok(res) => res,
@@ -67,14 +70,16 @@ impl HttpClient {
             ));
         }
         match res.text().await {
-            Ok(text) => {
-                Ok(text)
-            }
+            Ok(text) => Ok(text),
             Err(err) => Err(format!("Post form error, {}", err)),
         }
     }
     #[allow(unused)]
-    pub async fn post_data(&mut self, url: &str, json: &HashMap<&str, &str>) -> Result<String, String> {
+    pub async fn post_data(
+        &mut self,
+        url: &str,
+        json: &HashMap<&str, &str>,
+    ) -> Result<String, String> {
         log::info!("post data to {}.", url);
         let res = match self.client.post(url).json(json).send().await {
             Ok(res) => res,
@@ -94,12 +99,12 @@ impl HttpClient {
         }
     }
     #[allow(unused)]
-    pub fn debug_save(text: &str, suffix: &str) {
+    pub async fn debug_save(text: &str, suffix: &str) {
         let mut save_path = random_str::get_string(10, true, false, false, false);
         save_path.push_str(suffix);
         let path = Path::new(save_path.as_str());
-        match File::create(path) {
-            Ok(mut file) => match file.write_all(text.as_bytes()) {
+        match fs::File::create(path).await {
+            Ok(mut file) => match file.write_all(text.as_bytes()).await {
                 Ok(_) => {
                     log::info!("debug content write to {}", path.display());
                 }
@@ -132,7 +137,7 @@ async fn test_client() {
         Ok(resp) => {
             use std::fs::File;
             let mut file = File::create("test.html").unwrap();
-            file.write_all(resp.as_bytes()).unwrap();
+            std::io::Write::write_all(&mut file, resp.as_bytes()).unwrap();
             assert!(resp.is_empty() == false);
             std::fs::remove_file("test.html").unwrap();
         }
