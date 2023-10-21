@@ -1,5 +1,5 @@
-use std::{env::current_dir, fs, str::FromStr};
-
+use std::{env::current_dir, str::FromStr};
+use tokio::fs;
 use inquire::Select;
 
 use crate::{
@@ -12,7 +12,7 @@ use super::model::GenerateArgs;
 pub struct GenerateCommand {}
 
 impl GenerateCommand {
-    pub fn handle(args: GenerateArgs) -> Result<String, String> {
+    pub async fn handle(args: GenerateArgs) -> Result<String, String> {
         if let Ok(dir) = current_dir() {
             if let Some(cur_path) = dir.to_str() {
                 if let Ok(mut context) = CONTEXT.lock() {
@@ -83,7 +83,7 @@ impl GenerateCommand {
         }
         let mut content = String::new();
         if language_config.template_path != "" {
-            let raw_content = match std::fs::read_to_string(language_config.template_path) {
+            let raw_content = match fs::read_to_string(language_config.template_path).await {
                 Ok(content) => content,
                 Err(info) => {
                     log::info!(
@@ -100,7 +100,7 @@ impl GenerateCommand {
                 }
             };
         }
-        match fs::write(filename.clone(), content) {
+        match fs::write(filename.clone(), content).await {
             Ok(_) => {
                 return Ok(format!("Generate {} success", filename));
             }

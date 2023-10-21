@@ -9,8 +9,8 @@ use crate::{
     traits::OnlineJudge,
     utility::Utility,
 };
-use std::{env::current_dir, fs, thread, time::Duration};
-
+use std::{env::current_dir, thread, time::Duration};
+use tokio::fs;
 pub struct SubmitCommand {}
 #[derive(Debug)]
 pub struct SubmitInfo {
@@ -21,7 +21,7 @@ pub struct SubmitInfo {
     pub contest_identifier: String,
 }
 impl SubmitCommand {
-    pub fn handle(args: SubmitArgs) -> Result<String, String> {
+    pub async fn handle(args: SubmitArgs) -> Result<String, String> {
         let current_dir = match current_dir() {
             Ok(current_dir) => current_dir,
             Err(_) => {
@@ -59,7 +59,7 @@ impl SubmitCommand {
             }
         };
         let submit_info = match current_dir.join(filename.clone()).to_str() {
-            Some(file_path) => match Self::get_submit_info(&filename, file_path) {
+            Some(file_path) => match Self::get_submit_info(&filename, file_path).await {
                 Ok(submit_info) => Some(submit_info),
                 Err(info) => {
                     log::error!("{}", info);
@@ -82,14 +82,14 @@ impl SubmitCommand {
                         &submit_info.problem_identifier,
                         &submit_info.code,
                         &submit_info.language_id,
-                    ) {
+                    ).await {
                         Ok(submission_id) => submission_id,
                         Err(info) => {
                             return Err(info);
                         }
                     };
                     let mut submission_info =
-                        match cf.retrive_result(&submit_info.problem_identifier, &submission_id) {
+                        match cf.retrive_result(&submit_info.problem_identifier, &submission_id).await {
                             Ok(submission_info) => submission_info,
                             Err(_) => {
                                 return Err("Cannot get submission info".to_string());
@@ -101,7 +101,7 @@ impl SubmitCommand {
                         print!("...");
                         thread::sleep(Duration::from_secs(1));
                         submission_info = match cf
-                            .retrive_result(&submit_info.problem_identifier, &submission_id)
+                            .retrive_result(&submit_info.problem_identifier, &submission_id).await
                         {
                             Ok(submission_info) => submission_info,
                             Err(_) => {
@@ -127,7 +127,7 @@ impl SubmitCommand {
                         &submit_info.problem_identifier,
                         &submit_info.code,
                         &submit_info.language_id,
-                    ) {
+                    ).await {
                         Ok(submission_id) => submission_id,
                         Err(info) => {
                             log::error!("{}", info);
@@ -135,7 +135,7 @@ impl SubmitCommand {
                         }
                     };
                     let mut submission_info =
-                        match atc.retrive_result(&submit_info.problem_identifier, &submisson_id) {
+                        match atc.retrive_result(&submit_info.problem_identifier, &submisson_id).await {
                             Ok(submission_info) => submission_info,
                             Err(_) => {
                                 return Err("Cannot get submission info".to_string());
@@ -147,7 +147,7 @@ impl SubmitCommand {
                         retry_times -= 1;
                         thread::sleep(Duration::from_secs(1));
                         submission_info = match atc
-                            .retrive_result(&submit_info.problem_identifier, &submisson_id)
+                            .retrive_result(&submit_info.problem_identifier, &submisson_id).await
                         {
                             Ok(submission_info) => submission_info,
                             Err(_) => {
@@ -170,7 +170,7 @@ impl SubmitCommand {
     }
 }
 impl SubmitCommand {
-    fn get_submit_info(filename: &str, file_path: &str) -> Result<SubmitInfo, String> {
+    async fn get_submit_info(filename: &str, file_path: &str) -> Result<SubmitInfo, String> {
         let workspace = match CONFIG_DB.get_config("workspace") {
             Ok(workspace) => workspace,
             Err(info) => {
@@ -190,7 +190,7 @@ impl SubmitCommand {
                 return Err(info);
             }
         };
-        let code = match fs::read_to_string(file_path) {
+        let code = match fs::read_to_string(file_path).await {
             Ok(code) => code,
             Err(info) => {
                 return Err(info.to_string());

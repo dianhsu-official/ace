@@ -10,6 +10,8 @@ repository = "https://github.com/dianhsu/ace"
 
 [dependencies]
 aes = "0.8.3"
+async-std = { version = "1.12.0", features = ["attributes"] }
+async-trait = "0.1.74"
 cbc = "0.1.2"
 chrono = "0.4.31"
 chrono-tz = "0.8.3"
@@ -43,3 +45,4 @@ serde_yaml = "0.9.25"
 sqlite = "0.31.1"
 strum = { version = "0.25.0", features = ["derive"] }
 strum_macros = "0.25.3"
+tokio = { version = "1.33.0", features = ["full"] }

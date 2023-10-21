@@ -8,14 +8,14 @@ use crate::utility::Utility;
 
 use super::model::TestArgs;
 use std::env::current_dir;
-use std::fs;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
+use tokio::fs;
 pub struct TestCommand {}
 
 impl TestCommand {
-    pub fn handle(args: TestArgs) -> Result<String, String> {
+    pub async fn handle(args: TestArgs) -> Result<String, String> {
         let current_dir = match current_dir() {
             Ok(current_dir) => current_dir,
             Err(_) => {
@@ -125,7 +125,7 @@ impl TestCommand {
             &language_config.compile_command,
             &language_config.execute_command,
             &language_config.clear_command,
-        );
+        ).await;
     }
     fn run_no_input_command(single_command: &str) -> Result<String, String> {
         if cfg!(target_os = "windows") {
@@ -162,7 +162,7 @@ impl TestCommand {
             }
         }
     }
-    fn run_test_commands(
+    async fn run_test_commands(
         compile_command: &str,
         execute_command: &str,
         clear_command: &str,
@@ -181,13 +181,13 @@ impl TestCommand {
         for case in test_cases {
             let input_file = case[0].clone();
             let output_file = case[1].clone();
-            let file_in = match fs::read_to_string(input_file.clone()) {
+            let file_in = match fs::read_to_string(input_file.clone()).await {
                 Ok(stdin) => stdin,
                 Err(info) => {
                     return Err(info.to_string());
                 }
             };
-            let file_out = match fs::read_to_string(output_file.clone()) {
+            let file_out = match fs::read_to_string(output_file.clone()).await {
                 Ok(stdout) => stdout,
                 Err(info) => {
                     return Err(info.to_string());

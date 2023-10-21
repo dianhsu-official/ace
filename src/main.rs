@@ -7,8 +7,9 @@ mod platform;
 mod snippet;
 mod traits;
 mod utility;
-fn main() {
-    match command::Cli::run() {
+#[async_std::main]
+async fn main() {
+    match command::Cli::run().await {
         Ok(_) => {}
         Err(info) => {
             log::error!("{}", info)
