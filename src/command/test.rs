@@ -1,10 +1,10 @@
-use colored::Colorize;
-use inquire::Select;
-
 use crate::context::CONTEXT;
 use crate::database::CONFIG_DB;
 use crate::snippet::Snippet;
 use crate::utility::Utility;
+use colored::Colorize;
+use inquire::Select;
+use similar::{ChangeTag, TextDiff};
 
 use super::model::TestArgs;
 use std::env::current_dir;
@@ -212,10 +212,22 @@ impl TestCommand {
                             return Err(info.to_string());
                         }
                     }
-                    if stdout_str != file_out {
+                    let diff = TextDiff::from_lines(&stdout_str, &file_out);
+                    if diff.ratio() != 1.0 {
                         println!("Case {} test failed", input_file.bright_blue());
-                        println!("Real output: \n{}", stdout_str);
-                        println!("Expect output: \n{}", file_out);
+                        for change in diff.iter_all_changes() {
+                            match change.tag() {
+                                ChangeTag::Delete => {
+                                    println!("{}", format!("-{}", change).bright_red());
+                                }
+                                ChangeTag::Insert => {
+                                    println!("{}", format!("+{}", change).bright_green());
+                                }
+                                ChangeTag::Equal => {
+                                    println!("{}", change);
+                                }
+                            }
+                        }
                         return Err(format!("Test failed on case {}", input_file));
                     } else {
                         println!("Case {} test success", input_file.bright_blue());

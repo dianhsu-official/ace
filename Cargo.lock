@@ -34,6 +34,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
+ "similar",
  "sqlite",
  "strum",
  "strum_macros",
@@ -2101,6 +2102,12 @@ checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "similar"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2aeaf503862c419d66959f5d7ca015337d864e9c49485d771b732e2a20453597"
 
 [[package]]
 name = "siphasher"
