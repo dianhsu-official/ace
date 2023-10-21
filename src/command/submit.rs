@@ -21,6 +21,51 @@ pub struct SubmitInfo {
     pub contest_identifier: String,
 }
 impl SubmitCommand {
+    async fn submit<T: OnlineJudge>(mut t: T, submit_info: &SubmitInfo) -> Result<String, String> {
+        let submission_id = match t
+            .submit(
+                &submit_info.problem_identifier,
+                &submit_info.code,
+                &submit_info.language_id,
+            )
+            .await
+        {
+            Ok(submission_id) => submission_id,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let mut submission_info = match t
+            .retrive_result(&submit_info.problem_identifier, &submission_id)
+            .await
+        {
+            Ok(submission_info) => submission_info,
+            Err(_) => {
+                return Err("Cannot get submission info".to_string());
+            }
+        };
+        let mut retry_times = 100;
+        while submission_info.verdict == Verdict::Waiting && retry_times > 0 {
+            retry_times -= 1;
+            print!("...");
+            thread::sleep(Duration::from_secs(1));
+            submission_info = match t
+                .retrive_result(&submit_info.problem_identifier, &submission_id)
+                .await
+            {
+                Ok(submission_info) => submission_info,
+                Err(_) => {
+                    return Err("Cannot get submission info".to_string());
+                }
+            };
+        }
+        if submission_info.verdict == Verdict::Waiting {
+            return Err("Cannot get submission info".to_string());
+        } else {
+            println!("\nsubmission id: {}\nproblem: {}\nverdict: {}\nexecute time: {}\nexecute memory: {}\n", submission_info.submission_id, submission_info.problem_identifier, submission_info.verdict_info, submission_info.execute_time, submission_info.execute_memory);
+            return Ok("Submit success".to_string());
+        }
+    }
     pub async fn handle(args: SubmitArgs) -> Result<String, String> {
         let current_dir = match current_dir() {
             Ok(current_dir) => current_dir,
@@ -69,98 +114,26 @@ impl SubmitCommand {
             None => None,
         };
         log::info!("{:?}", submit_info);
+
         match submit_info {
             Some(submit_info) => match submit_info.platform {
                 Platform::Codeforces => {
-                    let mut cf = match Codeforces::new() {
+                    let cf = match Codeforces::new() {
                         Ok(cf) => cf,
                         Err(info) => {
                             return Err(info);
                         }
                     };
-                    let submission_id = match cf.submit(
-                        &submit_info.problem_identifier,
-                        &submit_info.code,
-                        &submit_info.language_id,
-                    ).await {
-                        Ok(submission_id) => submission_id,
-                        Err(info) => {
-                            return Err(info);
-                        }
-                    };
-                    let mut submission_info =
-                        match cf.retrive_result(&submit_info.problem_identifier, &submission_id).await {
-                            Ok(submission_info) => submission_info,
-                            Err(_) => {
-                                return Err("Cannot get submission info".to_string());
-                            }
-                        };
-                    let mut retry_times = 100;
-                    while submission_info.verdict == Verdict::Waiting && retry_times > 0 {
-                        retry_times -= 1;
-                        print!("...");
-                        thread::sleep(Duration::from_secs(1));
-                        submission_info = match cf
-                            .retrive_result(&submit_info.problem_identifier, &submission_id).await
-                        {
-                            Ok(submission_info) => submission_info,
-                            Err(_) => {
-                                return Err("Cannot get submission info".to_string());
-                            }
-                        };
-                    }
-                    if submission_info.verdict == Verdict::Waiting {
-                        return Err("Cannot get submission info".to_string());
-                    } else {
-                        println!("\nsubmission id: {}\nproblem: {}\nverdict: {}\nexecute time: {}\nexecute memory: {}\n", submission_info.submission_id, submission_info.problem_identifier, submission_info.verdict_info, submission_info.execute_time, submission_info.execute_memory);
-                        return Ok("Submit success".to_string());
-                    }
+                    return Self::submit(cf, &submit_info).await;
                 }
                 Platform::AtCoder => {
-                    let mut atc = match AtCoder::new() {
+                    let atc = match AtCoder::new() {
                         Ok(atc) => atc,
                         Err(info) => {
                             return Err(info);
                         }
                     };
-                    let submisson_id = match atc.submit(
-                        &submit_info.problem_identifier,
-                        &submit_info.code,
-                        &submit_info.language_id,
-                    ).await {
-                        Ok(submission_id) => submission_id,
-                        Err(info) => {
-                            log::error!("{}", info);
-                            return Err(info);
-                        }
-                    };
-                    let mut submission_info =
-                        match atc.retrive_result(&submit_info.problem_identifier, &submisson_id).await {
-                            Ok(submission_info) => submission_info,
-                            Err(_) => {
-                                return Err("Cannot get submission info".to_string());
-                            }
-                        };
-                    let mut retry_times = 100;
-
-                    while submission_info.verdict == Verdict::Waiting && retry_times > 0 {
-                        retry_times -= 1;
-                        thread::sleep(Duration::from_secs(1));
-                        submission_info = match atc
-                            .retrive_result(&submit_info.problem_identifier, &submisson_id).await
-                        {
-                            Ok(submission_info) => submission_info,
-                            Err(_) => {
-                                return Err("Cannot get submission info".to_string());
-                            }
-                        };
-                    }
-                    if submission_info.verdict == Verdict::Waiting {
-                        return Err("Cannot get submission info".to_string());
-                    } else {
-                        println!("\nsubmission id: {}\nproblem: {}\nverdict: {}\nexecute time: {}\nexecute memory: {}\n", submission_info.submission_id, submission_info.problem_identifier, submission_info.verdict_info, submission_info.execute_time, submission_info.execute_memory);
-                        return Ok("Submit success".to_string());
-                    }
+                    return Self::submit(atc, &submit_info).await;
                 }
             },
             None => {

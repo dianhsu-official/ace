@@ -1,18 +1,55 @@
-use tokio::fs;
 use std::path;
+use tokio::fs;
 
 use colored::Colorize;
 
 use super::model::ParseArgs;
 use crate::constants::PLATFORM_MAP;
 use crate::database::CONFIG_DB;
-use crate::model::{ContestStatus, Platform};
+use crate::model::{ContestStatus, Platform, TestCase};
 use crate::platform::{atcoder::AtCoder, codeforces::Codeforces};
 use crate::traits::OnlineJudge;
 
 pub struct ParseCommand {}
 
 impl ParseCommand {
+    pub async fn get_contest_test_cases<Remote: OnlineJudge>(
+        mut r: Remote,
+        contest_identifier: &str,
+    ) -> Result<Vec<(String, Vec<TestCase>)>, String> {
+        let contest = match r.get_contest(contest_identifier).await {
+            Ok(contest) => contest,
+            Err(info) => {
+                return Err(info);
+            }
+        };
+        let mut contest_test_cases = Vec::new();
+        if contest.status != ContestStatus::NotStarted {
+            let problem_infos = match r.get_problems(contest_identifier).await {
+                Ok(problem_infos) => problem_infos,
+                Err(info) => {
+                    return Err(info);
+                }
+            };
+            for problem_info in problem_infos {
+                let test_cases = match r.get_test_cases(&problem_info[1]).await {
+                    Ok(test_cases) => test_cases,
+                    Err(info) => {
+                        return Err(info);
+                    }
+                };
+                println!(
+                    "Grab test case for {} success.",
+                    problem_info[0].bright_blue()
+                );
+                let problem_identifier = problem_info[0].clone();
+                contest_test_cases.push((problem_identifier, test_cases));
+            }
+        } else {
+            return Err(format!("Contest {} not started", contest_identifier));
+        }
+        return Ok(contest_test_cases);
+    }
     pub async fn handle(args: ParseArgs) -> Result<String, String> {
         let real_platform = match PLATFORM_MAP.get(args.platform.as_str()) {
             Some(platform) => *platform,
@@ -22,77 +59,25 @@ impl ParseCommand {
         };
         let contest_test_cases = match real_platform {
             Platform::Codeforces => {
-                let mut cf = match Codeforces::new() {
+                let cf = match Codeforces::new() {
                     Ok(cf) => cf,
                     Err(info) => {
                         return Err(info);
                     }
                 };
-                let contest = match cf.get_contest(&args.contest_identifier).await {
-                    Ok(contest) => contest,
-                    Err(info) => {
-                        return Err(info);
-                    }
-                };
-                let mut contest_test_cases = Vec::new();
-                if contest.status != ContestStatus::NotStarted {
-                    let problem_infos = match cf.get_problems(&args.contest_identifier).await {
-                        Ok(problem_infos) => problem_infos,
-                        Err(info) => {
-                            return Err(info);
-                        }
-                    };
-                    for problem_info in problem_infos {
-                        let test_cases = match cf.get_test_cases(&problem_info[1]).await {
-                            Ok(test_cases) => test_cases,
-                            Err(info) => {
-                                return Err(info);
-                            }
-                        };
-                        println!(
-                            "Grab test case for {} success.",
-                            problem_info[0].bright_blue()
-                        );
-                        let problem_identifier = problem_info[0].clone();
-                        contest_test_cases.push((problem_identifier, test_cases));
-                    }
-                    contest_test_cases
-                } else {
-                    return Err(format!("Contest {} not started", args.contest_identifier));
+                match Self::get_contest_test_cases(cf, &args.contest_identifier).await {
+                    Ok(test_cases) => test_cases,
+                    Err(info) => return Err(info),
                 }
             }
             Platform::AtCoder => {
-                let mut atc = match AtCoder::new() {
+                let atc = match AtCoder::new() {
                     Ok(atc) => atc,
                     Err(info) => return Err(info),
                 };
-                let contest = match atc.get_contest(&args.contest_identifier).await {
-                    Ok(contest) => contest,
-                    Err(info) => {
-                        return Err(info);
-                    }
-                };
-                let mut contest_test_cases = Vec::new();
-                if contest.status != ContestStatus::NotStarted {
-                    let problem_infos = match atc.get_problems(&args.contest_identifier).await {
-                        Ok(problem_infos) => problem_infos,
-                        Err(info) => {
-                            return Err(info);
-                        }
-                    };
-                    for problem_info in problem_infos {
-                        let test_cases = match atc.get_test_cases(&problem_info[1]).await {
-                            Ok(test_cases) => test_cases,
-                            Err(info) => {
-                                return Err(info);
-                            }
-                        };
-                        let problem_identifier = problem_info[0].clone();
-                        contest_test_cases.push((problem_identifier, test_cases));
-                    }
-                    contest_test_cases
-                } else {
-                    return Err(format!("Contest {} not started", args.contest_identifier));
+                match Self::get_contest_test_cases(atc, &args.contest_identifier).await {
+                    Ok(test_cases) => test_cases,
+                    Err(info) => return Err(info),
                 }
             }
         };
