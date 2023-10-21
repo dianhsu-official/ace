@@ -22,14 +22,15 @@ impl Drop for AtCoder {
         let _ = self.save_cookies();
     }
 }
+#[async_trait::async_trait]
 impl OnlineJudge for AtCoder {
-    fn submit(
+    async fn submit(
         &mut self,
         problem_identifier: &str,
         code: &str,
         lang_id: &str,
     ) -> Result<String, String> {
-        if let Err(info) = self.login(){
+        if let Err(info) = self.login().await{
             return Err(info);
         }
         let vec = problem_identifier.split("_").collect::<Vec<_>>();
@@ -40,7 +41,7 @@ impl OnlineJudge for AtCoder {
         let contest_id = vec[0];
 
         let submit_page_url = UrlBuilder::build_submit_page_url(contest_id);
-        let resp = match self.client.get(&submit_page_url) {
+        let resp = match self.client.get(&submit_page_url).await {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
@@ -57,15 +58,15 @@ impl OnlineJudge for AtCoder {
         data.insert("sourceCode", code);
         data.insert("csrf_token", &csrf_token);
         let submit_url = UrlBuilder::build_submit_url(contest_id);
-        let resp = match self.client.post_form(&submit_url, &data) {
+        let resp = match self.client.post_form(&submit_url, &data).await {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
         return HtmlParser::parse_recent_submission_id(&resp);
     }
 
-    fn is_login(&mut self) -> bool {
-        let resp = match self.client.get(&UrlBuilder::build_index_url()) {
+    async fn is_login(&mut self) -> bool {
+        let resp = match self.client.get(&UrlBuilder::build_index_url()).await {
             Ok(resp) => resp,
             Err(_) => return false,
         };
@@ -76,12 +77,12 @@ impl OnlineJudge for AtCoder {
         }
     }
 
-    fn login(&mut self) -> Result<String, String> {
-        if self.is_login() {
+    async fn login(&mut self) -> Result<String, String> {
+        if self.is_login().await {
             return Ok(String::from("Already login."));
         }
         let login_page_url = UrlBuilder::build_login_page_url();
-        let resp = match self.client.get(&login_page_url) {
+        let resp = match self.client.get(&login_page_url).await {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
@@ -96,11 +97,11 @@ impl OnlineJudge for AtCoder {
         data.insert("password", self.password.as_str());
         data.insert("csrf_token", &csrf_token);
         let login_url = UrlBuilder::build_login_url();
-        let _ = match self.client.post_form(&login_url, &data) {
+        let _ = match self.client.post_form(&login_url, &data).await {
             Ok(_) => {}
             Err(info) => return Err(info),
         };
-        if self.is_login() {
+        if self.is_login().await {
             return Ok(String::from("Login success."));
         } else {
             return Err(String::from("Login failed."));
@@ -108,22 +109,22 @@ impl OnlineJudge for AtCoder {
     }
 
     /// Get test cases from AtCoder
-    fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String> {
-        if let Err(info) = self.login(){
+    async fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String> {
+        if let Err(info) = self.login().await{
             return Err(info);
         }
-        let resp = match self.client.get(&problem_url) {
+        let resp = match self.client.get(&problem_url).await {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
         return HtmlParser::parse_test_cases(&resp);
     }
-    fn retrive_result(
+    async fn retrive_result(
         &mut self,
         problem_identifier: &str,
         submission_id: &str,
     ) -> Result<SubmissionInfo, String> {
-        if let Err(info) = self.login(){
+        if let Err(info) = self.login().await{
             return Err(info);
         }
         let vec = problem_identifier.split("_").collect::<Vec<_>>();
@@ -132,31 +133,31 @@ impl OnlineJudge for AtCoder {
         }
         let contest_identifier = vec[0];
         let submission_url = UrlBuilder::build_submission_url(contest_identifier, submission_id);
-        let resp = match self.client.get(&submission_url) {
+        let resp = match self.client.get(&submission_url).await {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
         return HtmlParser::parse_submission_page(problem_identifier, submission_id, &resp);
     }
 
-    fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String> {
-        if let Err(info) = self.login(){
+    async fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String> {
+        if let Err(info) = self.login().await{
             return Err(info);
         }
         let problem_list_url = UrlBuilder::build_problem_list_url(contest_identifier);
-        let resp = match self.client.get(&problem_list_url) {
+        let resp = match self.client.get(&problem_list_url).await {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };
         return HtmlParser::parse_problem_list(contest_identifier, &resp);
     }
 
-    fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
-        if let Err(info) = self.login(){
+    async fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
+        if let Err(info) = self.login().await{
             return Err(info);
         }
         let contest_url = UrlBuilder::build_contest_url(contest_identifier);
-        let resp = match self.client.get(&contest_url) {
+        let resp = match self.client.get(&contest_url).await {
             Ok(resp) => resp,
             Err(info) => return Err(info),
         };

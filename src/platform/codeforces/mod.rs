@@ -27,6 +27,7 @@ impl Drop for Codeforces {
         let _ = self.save_cookies();
     }
 }
+#[async_trait::async_trait]
 impl OnlineJudge for Codeforces {
     /// Submit code to the platform.  
     ///
@@ -40,13 +41,13 @@ impl OnlineJudge for Codeforces {
     ///        You can get the language id from the submit page.  
     ///
     /// Return the submit id of the submit request.  
-    fn submit(
+    async fn submit(
         &mut self,
         problem_identifier: &str,
         code: &str,
         lang_id: &str,
     ) -> Result<String, String> {
-        if let Err(info) = self.login() {
+        if let Err(info) = self.login().await {
             return Err(info);
         }
         let info: Vec<&str> = problem_identifier.split("_").collect();
@@ -56,7 +57,7 @@ impl OnlineJudge for Codeforces {
         let contest_id = info[0];
         let problem_id = info[1];
         let submit_page_url = UrlBuilder::build_submit_page_url(contest_id);
-        let submit_page = match self.client.get(&submit_page_url) {
+        let submit_page = match self.client.get(&submit_page_url).await {
             Ok(page) => page,
             Err(err) => {
                 return Err(String::from("unable to get submit page, ") + err.as_str());
@@ -81,7 +82,7 @@ impl OnlineJudge for Codeforces {
         params.insert("tabSize", "4");
         params.insert("_tta", "176");
         let submit_url = UrlBuilder::build_submit_url(contest_id, &params["csrf_token"]);
-        let resp = match self.client.post_form(&submit_url, &params) {
+        let resp = match self.client.post_form(&submit_url, &params).await {
             Ok(resp) => resp,
             Err(err) => {
                 return Err(String::from("Submit failed, ") + err.as_str());
@@ -96,8 +97,13 @@ impl OnlineJudge for Codeforces {
     }
 
     /// Check if the user is logged in.
-    fn is_login(&mut self) -> bool {
-        let main_page = self.client.get("https://codeforces.com").unwrap();
+    async fn is_login(&mut self) -> bool {
+        let main_page = match self.client.get("https://codeforces.com").await {
+            Ok(page) => page,
+            Err(_) => {
+                return false;
+            }
+        };
         let re = match Regex::new(r#"handle = "([\s\S]+?)""#) {
             Ok(re) => re,
             Err(_) => return false,
@@ -110,11 +116,11 @@ impl OnlineJudge for Codeforces {
     }
 
     /// Login to the platform.
-    fn login(&mut self) -> Result<String, String> {
-        if self.is_login() {
+    async fn login(&mut self) -> Result<String, String> {
+        if self.is_login().await {
             return Ok(String::from("Already login."));
         }
-        let login_page = match self.client.get(&UrlBuilder::build_index_url()) {
+        let login_page = match self.client.get(&UrlBuilder::build_index_url()).await {
             Ok(login_page) => login_page,
             Err(info) => {
                 return Err(info);
@@ -141,22 +147,23 @@ impl OnlineJudge for Codeforces {
         let _ = match self
             .client
             .post_form(&UrlBuilder::build_login_url(), &params)
+            .await
         {
             Ok(resp) => Ok(resp),
             Err(err) => Err(err),
         };
-        if self.is_login() {
+        if self.is_login().await {
             return Ok(String::from("Login success."));
         } else {
             return Err(String::from("Login failed."));
         }
     }
     /// Get test cases
-    fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String> {
-        if let Err(info) = self.login() {
+    async fn get_test_cases(&mut self, problem_url: &str) -> Result<Vec<TestCase>, String> {
+        if let Err(info) = self.login().await {
             return Err(info);
         }
-        let resp = match self.client.get(problem_url) {
+        let resp = match self.client.get(problem_url).await {
             Ok(resp) => resp,
             Err(err) => {
                 return Err(String::from("Get problem page failed, ") + err.as_str());
@@ -165,12 +172,12 @@ impl OnlineJudge for Codeforces {
         return HtmlParser::parse_test_cases(&resp);
     }
 
-    fn retrive_result(
+    async fn retrive_result(
         &mut self,
         problem_identifier: &str,
         submission_id: &str,
     ) -> Result<SubmissionInfo, String> {
-        if let Err(info) = self.login() {
+        if let Err(info) = self.login().await {
             return Err(info);
         }
         let info: Vec<&str> = problem_identifier.split("_").collect();
@@ -180,7 +187,7 @@ impl OnlineJudge for Codeforces {
         let contest_id = info[0];
         let problem_id = info[1];
         let url = UrlBuilder::build_submission_url(contest_id, submission_id);
-        let resp = match self.client.get(&url) {
+        let resp = match self.client.get(&url).await {
             Ok(resp) => resp,
             Err(info) => {
                 return Err(info);
@@ -189,12 +196,12 @@ impl OnlineJudge for Codeforces {
         return HtmlParser::parse_submission_page(submission_id, contest_id, problem_id, &resp);
     }
 
-    fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String> {
-        if let Err(info) = self.login() {
+    async fn get_problems(&mut self, contest_identifier: &str) -> Result<Vec<[String; 2]>, String> {
+        if let Err(info) = self.login().await {
             return Err(info);
         }
         let problem_list_url = UrlBuilder::build_problem_list_url(contest_identifier);
-        let resp = match self.client.get(&problem_list_url) {
+        let resp = match self.client.get(&problem_list_url).await {
             Ok(resp) => resp,
             Err(info) => {
                 return Err(info);
@@ -203,12 +210,12 @@ impl OnlineJudge for Codeforces {
         return HtmlParser::parse_problem_list(contest_identifier, &resp);
     }
 
-    fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
-        if let Err(info) = self.login() {
+    async fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String> {
+        if let Err(info) = self.login().await {
             return Err(info);
         }
         let contest_url = UrlBuilder::build_contest_url(contest_identifier);
-        let resp = match self.client.get(&contest_url) {
+        let resp = match self.client.get(&contest_url).await {
             Ok(resp) => resp,
             Err(info) => {
                 return Err(info);
@@ -304,9 +311,9 @@ impl Codeforces {
     }
 }
 
-#[test]
+#[tokio::test]
 #[ignore = "reason: need login"]
-fn test_login() {
+async fn test_login() {
     dotenv::dotenv().ok();
     let mut cf = Codeforces::create(
         dotenv::var("CODEFORCES_USERNAME").unwrap().as_str(),
@@ -314,7 +321,7 @@ fn test_login() {
         "",
         "https://codeforces.com",
     );
-    let resp = cf.login();
+    let resp = cf.login().await;
     match resp {
         Ok(resp) => {
             println!("{}", resp);

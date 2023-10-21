@@ -27,7 +27,7 @@ pub struct Cli {
     pub verbose: bool,
 }
 impl Cli {
-    pub fn run() -> Result<(), String> {
+    pub async fn run() -> Result<(), String> {
         let cli = Cli::parse();
         if cli.verbose {
             env_logger::builder()
@@ -78,9 +78,9 @@ impl Cli {
             Commands::Account(args) => AccountCommand::handle(args),
             Commands::Config(args) => ConfigCommand::handle(args),
             Commands::Lang(args) => LanguageCommand::handle(args),
-            Commands::Parse(args) => ParseCommand::handle(args),
+            Commands::Parse(args) => ParseCommand::handle(args).await,
             Commands::Gen(args) => GenerateCommand::handle(args),
-            Commands::Submit(args) => SubmitCommand::handle(args),
+            Commands::Submit(args) => SubmitCommand::handle(args).await,
             Commands::Test(args) => test::TestCommand::handle(args),
         };
         match res {

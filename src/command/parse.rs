@@ -13,7 +13,7 @@ use crate::traits::OnlineJudge;
 pub struct ParseCommand {}
 
 impl ParseCommand {
-    pub fn handle(args: ParseArgs) -> Result<String, String> {
+    pub async fn handle(args: ParseArgs) -> Result<String, String> {
         let real_platform = match PLATFORM_MAP.get(args.platform.as_str()) {
             Some(platform) => *platform,
             None => {
@@ -28,7 +28,7 @@ impl ParseCommand {
                         return Err(info);
                     }
                 };
-                let contest = match cf.get_contest(&args.contest_identifier) {
+                let contest = match cf.get_contest(&args.contest_identifier).await {
                     Ok(contest) => contest,
                     Err(info) => {
                         return Err(info);
@@ -36,20 +36,23 @@ impl ParseCommand {
                 };
                 let mut contest_test_cases = Vec::new();
                 if contest.status != ContestStatus::NotStarted {
-                    let problem_infos = match cf.get_problems(&args.contest_identifier) {
+                    let problem_infos = match cf.get_problems(&args.contest_identifier).await {
                         Ok(problem_infos) => problem_infos,
                         Err(info) => {
                             return Err(info);
                         }
                     };
                     for problem_info in problem_infos {
-                        let test_cases = match cf.get_test_cases(&problem_info[1]) {
+                        let test_cases = match cf.get_test_cases(&problem_info[1]).await {
                             Ok(test_cases) => test_cases,
                             Err(info) => {
                                 return Err(info);
                             }
                         };
-                        println!("Grab test case for {} success.", problem_info[0].bright_blue());
+                        println!(
+                            "Grab test case for {} success.",
+                            problem_info[0].bright_blue()
+                        );
                         let problem_identifier = problem_info[0].clone();
                         contest_test_cases.push((problem_identifier, test_cases));
                     }
@@ -63,7 +66,7 @@ impl ParseCommand {
                     Ok(atc) => atc,
                     Err(info) => return Err(info),
                 };
-                let contest = match atc.get_contest(&args.contest_identifier) {
+                let contest = match atc.get_contest(&args.contest_identifier).await {
                     Ok(contest) => contest,
                     Err(info) => {
                         return Err(info);
@@ -71,14 +74,14 @@ impl ParseCommand {
                 };
                 let mut contest_test_cases = Vec::new();
                 if contest.status != ContestStatus::NotStarted {
-                    let problem_infos = match atc.get_problems(&args.contest_identifier) {
+                    let problem_infos = match atc.get_problems(&args.contest_identifier).await {
                         Ok(problem_infos) => problem_infos,
                         Err(info) => {
                             return Err(info);
                         }
                     };
                     for problem_info in problem_infos {
-                        let test_cases = match atc.get_test_cases(&problem_info[1]) {
+                        let test_cases = match atc.get_test_cases(&problem_info[1]).await {
                             Ok(test_cases) => test_cases,
                             Err(info) => {
                                 return Err(info);
@@ -138,7 +141,10 @@ impl ParseCommand {
                     }
                 }
             }
-            println!("Save test case for {} success.", problem_identifier.bright_blue());
+            println!(
+                "Save test case for {} success.",
+                problem_identifier.bright_blue()
+            );
         }
         return Ok(String::from("Parse command success"));
     }

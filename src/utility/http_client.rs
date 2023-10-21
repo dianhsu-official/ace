@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::File, io::Write, path::Path, sync::Arc};
 
 use reqwest::{
-    blocking::Client as ReqwestClient,
+    Client as ReqwestClient,
     cookie::{CookieStore, Jar},
     header::HeaderValue,
     Url,
@@ -14,10 +14,9 @@ pub struct HttpClient {
 }
 
 impl HttpClient {
-    #[allow(unused)]
     pub fn new(cookies: &str, endpoint: &str) -> Self {
         let cookies_store = Arc::new(Self::load_cookie_store(cookies, endpoint).unwrap());
-        let client = reqwest::blocking::ClientBuilder::new()
+        let client = reqwest::ClientBuilder::new()
             .cookie_provider(cookies_store.clone())
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36")
             .build()
@@ -39,25 +38,23 @@ impl HttpClient {
         return cookies;
     }
 
-    #[allow(unused)]
-    pub fn get(&mut self, url: &str) -> Result<String, String> {
-        let res = match self.client.get(url).send() {
+    pub async fn get(&mut self, url: &str) -> Result<String, String> {
+        let res = match self.client.get(url).send().await {
             Ok(res) => res,
             Err(err) => return Err(format!("Request error, {}", err)),
         };
         if !res.status().is_success() {
             return Err(format!("Request error, request url: {}", url));
         }
-        match res.text() {
+        match res.text().await {
             Ok(text) => Ok(text),
             Err(err) => Err(format!("Get body error, {}", err)),
         }
     }
 
-    #[allow(unused)]
-    pub fn post_form(&mut self, url: &str, form: &HashMap<&str, &str>) -> Result<String, String> {
+    pub async fn post_form(&mut self, url: &str, form: &HashMap<&str, &str>) -> Result<String, String> {
         log::info!("post data {:?} to {}.", form, url);
-        let res = match self.client.post(url).form(&form).send() {
+        let res = match self.client.post(url).form(&form).send().await {
             Ok(res) => res,
             Err(err) => return Err(format!("Request error, {}", err)),
         };
@@ -66,10 +63,10 @@ impl HttpClient {
                 "Request error, request url: {}, status: {}, error: {}",
                 url,
                 res.status(),
-                res.text_with_charset("utf-8").unwrap()
+                res.text_with_charset("utf-8").await.unwrap()
             ));
         }
-        match res.text() {
+        match res.text().await {
             Ok(text) => {
                 Ok(text)
             }
@@ -77,9 +74,9 @@ impl HttpClient {
         }
     }
     #[allow(unused)]
-    pub fn post_data(&mut self, url: &str, json: &HashMap<&str, &str>) -> Result<String, String> {
+    pub async fn post_data(&mut self, url: &str, json: &HashMap<&str, &str>) -> Result<String, String> {
         log::info!("post data to {}.", url);
-        let res = match self.client.post(url).json(json).send() {
+        let res = match self.client.post(url).json(json).send().await {
             Ok(res) => res,
             Err(err) => return Err(format!("Request error, {}", err)),
         };
@@ -88,10 +85,10 @@ impl HttpClient {
                 "Request error, request url: {}, status: {}, error: {}",
                 url,
                 res.status(),
-                res.text_with_charset("utf-8").unwrap()
+                res.text_with_charset("utf-8").await.unwrap()
             ));
         }
-        match res.text() {
+        match res.text().await {
             Ok(text) => Ok(text),
             Err(err) => Err(format!("Post form error, {}", err)),
         }
@@ -127,11 +124,11 @@ impl HttpClient {
     }
 }
 
-#[test]
-fn test_client() {
+#[tokio::test]
+async fn test_client() {
     let url = "https://atcoder.jp";
     let mut client = HttpClient::new("", url);
-    match client.get("https://atcoder.jp") {
+    match client.get("https://atcoder.jp").await {
         Ok(resp) => {
             use std::fs::File;
             let mut file = File::create("test.html").unwrap();
