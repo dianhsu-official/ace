@@ -2,10 +2,11 @@ mod account;
 mod config;
 mod generate;
 mod language;
-pub mod model;
+mod model;
 mod parse;
 mod submit;
 mod test;
+mod race;
 use self::account::AccountCommand;
 use self::config::ConfigCommand;
 use self::generate::GenerateCommand;
@@ -82,6 +83,7 @@ impl Cli {
             Commands::Gen(args) => GenerateCommand::handle(args).await,
             Commands::Submit(args) => SubmitCommand::handle(args).await,
             Commands::Test(args) => test::TestCommand::handle(args).await,
+            Commands::Race(args) => race::RaceCommand::handle(args).await,
         };
         match res {
             Ok(res) => {

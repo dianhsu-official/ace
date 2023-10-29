@@ -17,6 +17,8 @@ pub enum Commands {
     Submit(SubmitArgs),
     /// Run the code locally, and compare the output with the answer
     Test(TestArgs),
+    /// Start a race 
+    Race(RaceArgs),
 }
 
 #[derive(Subcommand)]
@@ -83,6 +85,11 @@ pub struct ParseArgs {
     pub contest_identifier: String,
 }
 
+#[derive(Args)]
+pub struct RaceArgs {
+    pub platform: String,
+    pub contest_identifier: String,
+}
 #[derive(Args)]
 pub struct GenerateArgs {
     pub language: Option<ProgramLanguage>,
