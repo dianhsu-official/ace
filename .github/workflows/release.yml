@@ -9,7 +9,28 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  new_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: SebRollen/toml-action@v1.0.2
+        id: read_toml
+        with:
+          file: 'Cargo.toml'
+          field: 'package.version'
+      
+      - uses: rickstaa/action-create-tag@v1
+        id: "tag_create"
+        with:
+          tag: "v${{ steps.read_toml.outputs.value }}"
+          tag_exists_error: false
+          message: "Release ${{ steps.read_toml.outputs.value }}"
+    outputs:
+      tag_exist: ${{ steps.read_toml.outputs.value }}
+    
   build:
+    needs: new_tag
+    if: ${{ needs.new_tag.outputs.tag_exist == 'false' }}
     env:
       RUST_BACKTRACE: full
     strategy:
@@ -72,8 +93,11 @@ jobs:
         name: my-artifact
         path: ${{ matrix.dist }}
   release:
+    if: ${{ needs.new_tag.outputs.tag_exist == 'false' }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: 
+      - build
+      - new_tag
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v3
