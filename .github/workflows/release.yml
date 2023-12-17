@@ -29,6 +29,7 @@ jobs:
           message: "Release ${{ steps.read_toml.outputs.value }}"
     outputs:
       tag_exists: ${{ steps.tag_create.outputs.tag_exists }}
+      tag_name: v${{ steps.tag_create.outputs.value }}
     
   build:
     needs: new_tag
@@ -112,7 +113,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: artifacts/*
-        name: Release ${{ github.ref_name }}
+        tag: refs/tags/v${{ needs.new_tag.outputs.tag_name }}
+        name: Release v${{ needs.new_tag.outputs.tag_name }}
         generate_release_notes: true
         draft: false
         prerelease: false
