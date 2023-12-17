@@ -83,8 +83,8 @@ jobs:
         tag_name: Release ${{ github.ref_name }}
         body: |
           ${{ github.event.release.body }}
-        draft: true
-        prerelease: false
+        draft: false
+        prerelease: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
