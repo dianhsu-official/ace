@@ -94,7 +94,7 @@ jobs:
         body: |
           ${{ github.event.release.body }}
         draft: false
-        prerelease: true
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
