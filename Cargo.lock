@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "ace"
-version = "0.1.12"
+version = "0.1.14"
 dependencies = [
  "aes",
  "async-std",
