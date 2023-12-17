@@ -102,6 +102,9 @@ jobs:
       - build
       - new_tag
     steps:
+    - uses: actions/checkout@v3
+    - name: Show tags
+      run: git tag -l
     - name: Download artifacts
       uses: actions/download-artifact@v3
       with:
