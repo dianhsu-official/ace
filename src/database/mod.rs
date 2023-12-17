@@ -11,7 +11,7 @@ lazy_static! {
 }
 
 pub struct ConfigDatabase {
-    pub connection: sqlite::ConnectionWithFullMutex,
+    pub connection: sqlite::ConnectionThreadSafe,
 }
 
 const INIT_QUERY: &str = "
@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS language (
 ";
 impl ConfigDatabase {
     pub fn create_from_path(config_path: &Path) -> Self {
-        let connection: sqlite::ConnectionWithFullMutex =
-            match sqlite::Connection::open_with_full_mutex(config_path) {
+        let connection: sqlite::ConnectionThreadSafe =
+            match sqlite::Connection::open_thread_safe(config_path) {
                 Ok(conn) => conn,
                 Err(info) => {
                     log::error!("{}", info);
