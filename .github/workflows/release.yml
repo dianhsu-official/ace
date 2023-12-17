@@ -103,6 +103,8 @@ jobs:
       - new_tag
     steps:
     - uses: actions/checkout@v3
+      with:
+        ref: ${{ needs.new_tag.outputs.tag_name }}
     - name: Show tags
       run: git tag -l
     - name: Download artifacts
