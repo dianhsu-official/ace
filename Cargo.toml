@@ -1,6 +1,6 @@
 [package]
 name = "ace"
-version = "0.1.19"
+version = "0.1.20"
 edition = "2021"
 description = "A CLI tool for interacting with several contest platforms."
 readme = "README.md"
