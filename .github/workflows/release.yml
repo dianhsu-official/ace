@@ -66,7 +66,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with: 
-        name: ${{ matrix.dist }}
+        name: my-artifact
         path: ${{ matrix.dist }}
   release:
     runs-on: ubuntu-latest
@@ -75,7 +75,10 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v3
       with:
+        name: my-artifact
         path: artifacts
+    - name: Display structure of downloaded files
+      run: ls -al artifacts
     - name: Create release
       uses: softprops/action-gh-release@v1
       with:
