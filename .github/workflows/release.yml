@@ -80,7 +80,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: artifacts/*
-        tag_name: Release ${{ github.ref_name }}
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref_name }}
         body: |
           ${{ github.event.release.body }}
         draft: false
