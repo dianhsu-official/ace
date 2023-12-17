@@ -1,7 +1,9 @@
 name: ACE Release
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - v*
 
 env:
   CARGO_TERM_COLOR: always
@@ -66,3 +68,21 @@ jobs:
       with: 
         name: ${{ matrix.dist }}
         path: ${{ matrix.dist }}
+  release:
+    needs: build
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/*
+        tag_name: ${{ github.ref }}
+        body: |
+          ${{ github.event.release.body }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
