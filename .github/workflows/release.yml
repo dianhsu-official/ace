@@ -18,23 +18,23 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             output: ace
-            dist: ace-linux-amd64
+            dist: ace-linux-amd64.zip
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             output: ace
-            dist: ace-linux-arm64
+            dist: ace-linux-arm64.zip
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             output: ace.exe
-            dist: ace-windows-amd64.exe
+            dist: ace-windows-amd64.zip
           - os: macos-latest
             target: x86_64-apple-darwin
             output: ace
-            dist: ace-macos-amd64
+            dist: ace-macos-amd64.zip
           - os: macos-latest
             target: aarch64-apple-darwin
             output: ace
-            dist: ace-macos-arm64
+            dist: ace-macos-arm64.zip
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
@@ -61,7 +61,9 @@ jobs:
       run: cross build -r --target ${{ matrix.target }}
 
     - name: Rename file
-      run: mv target/${{ matrix.target }}/release/${{ matrix.output }} ./${{ matrix.dist }}
+      run: | 
+        mv target/${{ matrix.target }}/release/${{ matrix.output }} ./${{ matrix.output }}
+        zip ${{ matrix.dist }} ${{ matrix.output }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
