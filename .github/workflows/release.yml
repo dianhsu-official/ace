@@ -60,10 +60,14 @@ jobs:
       timeout-minutes: 120
       run: cross build -r --target ${{ matrix.target }}
 
-    - name: Rename file
-      run: | 
-        mv target/${{ matrix.target }}/release/${{ matrix.output }} ./${{ matrix.output }}
-        zip ${{ matrix.dist }} ${{ matrix.output }}
+    - name: Move file
+      run: mv target/${{ matrix.target }}/release/${{ matrix.output }} ./${{ matrix.output }}
+    - name: Rename file not on windows
+      if: ${{ !contains(matrix.os, 'windows') }}
+      run: zip ${{ matrix.dist }} ${{ matrix.output }}
+    - name: Rename file on windows
+      if: ${{ contains(matrix.os, 'windows') }}
+      run: powershell Compress-Archive -Path ${{ matrix.output }} -DestinationPath ${{ matrix.dist }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
