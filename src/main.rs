@@ -7,7 +7,7 @@ mod platform;
 mod snippet;
 mod traits;
 mod utility;
-#[async_std::main]
+#[tokio::main]
 async fn main() {
     match command::Cli::run().await {
         Ok(_) => {}

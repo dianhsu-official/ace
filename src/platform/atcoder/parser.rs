@@ -1,7 +1,7 @@
 use chrono::Utc;
 use scraper::{Html, Selector};
 
-use crate::model::{Contest, ContestStatus, SubmissionInfo, TestCase, Verdict};
+use crate::model::{Contest, ContestStatus, PostSubmissionInfo, TestCase, Verdict};
 
 use super::utility::Utility;
 
@@ -12,7 +12,7 @@ impl HtmlParser {
         problem_identifier: &str,
         submission_id: &str,
         resp: &str,
-    ) -> Result<SubmissionInfo, String> {
+    ) -> Result<PostSubmissionInfo, String> {
         let document = Html::parse_document(&resp);
         let tbody_selector = match Selector::parse("tbody") {
             Ok(tbody_selector) => tbody_selector,
@@ -53,7 +53,7 @@ impl HtmlParser {
             execute_time = tds[7].unwrap().text().collect::<String>();
             execute_memory = tds[8].unwrap().text().collect::<String>();
         }
-        let mut submission_info = SubmissionInfo::new();
+        let mut submission_info = PostSubmissionInfo::new();
         submission_info.submission_id = String::from(submission_id);
         submission_info.problem_identifier = String::from(problem_identifier);
         submission_info.verdict_info = status;
