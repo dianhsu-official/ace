@@ -7,7 +7,7 @@ use crate::database::CONFIG_DB;
 use crate::model::Contest;
 use crate::model::Platform;
 use crate::model::PlatformLanguage;
-use crate::model::SubmissionInfo;
+use crate::model::PostSubmissionInfo;
 use crate::model::TestCase;
 use crate::traits::OnlineJudge;
 use crate::utility::http_client::HttpClient;
@@ -176,7 +176,7 @@ impl OnlineJudge for Codeforces {
         &mut self,
         problem_identifier: &str,
         submission_id: &str,
-    ) -> Result<SubmissionInfo, String> {
+    ) -> Result<PostSubmissionInfo, String> {
         if let Err(info) = self.login().await {
             return Err(info);
         }

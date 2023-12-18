@@ -5,7 +5,7 @@ use scraper::Selector;
 
 use crate::model::Contest;
 use crate::model::ContestStatus;
-use crate::model::SubmissionInfo;
+use crate::model::PostSubmissionInfo;
 use crate::model::TestCase;
 use crate::model::Verdict;
 
@@ -161,9 +161,9 @@ impl HtmlParser {
         contest_id: &str,
         problem_id: &str,
         resp: &str,
-    ) -> Result<SubmissionInfo, String> {
+    ) -> Result<PostSubmissionInfo, String> {
         let document = Html::parse_document(&resp);
-        let mut submission_info = SubmissionInfo::new();
+        let mut post_submission_info = PostSubmissionInfo::new();
         let table_selector = match Selector::parse("table") {
             Ok(table_selector) => table_selector,
             Err(_) => {
@@ -186,19 +186,19 @@ impl HtmlParser {
         if vec.len() != 11 {
             return Err(format!("Td count is not 11, but {}", vec.len()));
         }
-        submission_info.submission_id = submission_id.to_string();
-        submission_info.problem_identifier = format!("{}{}", contest_id, problem_id);
-        submission_info.verdict_info = vec[4].text().collect::<String>().trim().to_string();
-        if submission_info.verdict_info.contains("Running")
-            || submission_info.verdict_info.contains("queue")
+        post_submission_info.submission_id = submission_id.to_string();
+        post_submission_info.problem_identifier = format!("{}{}", contest_id, problem_id);
+        post_submission_info.verdict_info = vec[4].text().collect::<String>().trim().to_string();
+        if post_submission_info.verdict_info.contains("Running")
+            || post_submission_info.verdict_info.contains("queue")
         {
-            submission_info.verdict = Verdict::Waiting;
+            post_submission_info.verdict = Verdict::Waiting;
         } else {
-            submission_info.verdict = Verdict::Resulted;
+            post_submission_info.verdict = Verdict::Resulted;
         }
-        submission_info.execute_time = vec[5].text().collect::<String>().trim().to_string();
-        submission_info.execute_memory = vec[6].text().collect::<String>().trim().to_string();
-        return Ok(submission_info);
+        post_submission_info.execute_time = vec[5].text().collect::<String>().trim().to_string();
+        post_submission_info.execute_memory = vec[6].text().collect::<String>().trim().to_string();
+        return Ok(post_submission_info);
     }
     pub fn parse_test_cases(resp: &str) -> Result<Vec<TestCase>, String> {
         let document = Html::parse_document(resp);

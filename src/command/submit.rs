@@ -1,19 +1,20 @@
 use inquire::Select;
+use prettytable::table;
 
 use super::model::SubmitArgs;
 use crate::{
     database::CONFIG_DB,
-    model::{Platform, Verdict},
+    model::{Platform, PostSubmissionInfo, Verdict},
     platform::atcoder::AtCoder,
     platform::codeforces::Codeforces,
     traits::OnlineJudge,
     utility::Utility,
 };
-use std::{env::current_dir, thread, time::Duration};
+use std::env::current_dir;
 use tokio::fs;
 pub struct SubmitCommand {}
 #[derive(Debug)]
-pub struct SubmitInfo {
+pub struct PreSubmissionInfo {
     pub platform: Platform,
     pub language_id: String,
     pub code: String,
@@ -21,7 +22,26 @@ pub struct SubmitInfo {
     pub contest_identifier: String,
 }
 impl SubmitCommand {
-    async fn submit<OnlineJudgeT: OnlineJudge>(mut oj: OnlineJudgeT, submit_info: &SubmitInfo) -> Result<String, String> {
+    async fn show_result(submission_info: &PostSubmissionInfo, reties: u32) {
+        let mut table = table!([],
+            [b -> "submission id", submission_info.submission_id],
+            [b -> "problem", submission_info.problem_identifier],
+            [b -> "verdict", submission_info.verdict_info],
+            [b -> "execute time", submission_info.execute_time],
+            [b -> "execute memory", submission_info.execute_memory]
+        );
+        table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
+        let output = table.to_string();
+        let lines = output.lines().count() + 1;
+        if reties > 0 {
+            print!("{}", ansi_escapes::EraseLines(lines as u16));
+        }
+        table.printstd();
+    }
+    async fn submit<OnlineJudgeT: OnlineJudge>(
+        mut oj: OnlineJudgeT,
+        submit_info: &PreSubmissionInfo,
+    ) -> Result<String, String> {
         let submission_id = match oj
             .submit(
                 &submit_info.problem_identifier,
@@ -35,36 +55,20 @@ impl SubmitCommand {
                 return Err(info);
             }
         };
-        let mut submission_info = match oj
+        let mut retries: u32 = 0;
+        while let Ok(post_submission_info) = oj
             .retrive_result(&submit_info.problem_identifier, &submission_id)
             .await
         {
-            Ok(submission_info) => submission_info,
-            Err(_) => {
-                return Err("Cannot get submission info".to_string());
+            Self::show_result(&post_submission_info, retries).await;
+            if post_submission_info.verdict != Verdict::Waiting {
+                return Ok("Submit success".to_string());
+            } else if retries > 100 {
+                break;
             }
-        };
-        let mut retry_times = 100;
-        while submission_info.verdict == Verdict::Waiting && retry_times > 0 {
-            retry_times -= 1;
-            print!("...");
-            thread::sleep(Duration::from_secs(1));
-            submission_info = match oj
-                .retrive_result(&submit_info.problem_identifier, &submission_id)
-                .await
-            {
-                Ok(submission_info) => submission_info,
-                Err(_) => {
-                    return Err("Cannot get submission info".to_string());
-                }
-            };
+            retries += 1;
         }
-        if submission_info.verdict == Verdict::Waiting {
-            return Err("Cannot get submission info".to_string());
-        } else {
-            println!("\nsubmission id: {}\nproblem: {}\nverdict: {}\nexecute time: {}\nexecute memory: {}\n", submission_info.submission_id, submission_info.problem_identifier, submission_info.verdict_info, submission_info.execute_time, submission_info.execute_memory);
-            return Ok("Submit success".to_string());
-        }
+        return Err("Cannot get submission info".to_string());
     }
     pub async fn handle(args: SubmitArgs) -> Result<String, String> {
         let current_dir = match current_dir() {
@@ -103,9 +107,9 @@ impl SubmitCommand {
                 }
             }
         };
-        let submit_info = match current_dir.join(filename.clone()).to_str() {
+        let pre_submission_info = match current_dir.join(filename.clone()).to_str() {
             Some(file_path) => match Self::get_submit_info(&filename, file_path).await {
-                Ok(submit_info) => Some(submit_info),
+                Ok(pre_submission_info) => Some(pre_submission_info),
                 Err(info) => {
                     log::error!("{}", info);
                     return Err(info);
@@ -113,10 +117,10 @@ impl SubmitCommand {
             },
             None => None,
         };
-        log::info!("{:?}", submit_info);
+        log::info!("{:?}", pre_submission_info);
 
-        match submit_info {
-            Some(submit_info) => match submit_info.platform {
+        match pre_submission_info {
+            Some(pre_submission_info) => match pre_submission_info.platform {
                 Platform::Codeforces => {
                     let cf = match Codeforces::new() {
                         Ok(cf) => cf,
@@ -124,7 +128,7 @@ impl SubmitCommand {
                             return Err(info);
                         }
                     };
-                    return Self::submit(cf, &submit_info).await;
+                    return Self::submit(cf, &pre_submission_info).await;
                 }
                 Platform::AtCoder => {
                     let atc = match AtCoder::new() {
@@ -133,7 +137,7 @@ impl SubmitCommand {
                             return Err(info);
                         }
                     };
-                    return Self::submit(atc, &submit_info).await;
+                    return Self::submit(atc, &pre_submission_info).await;
                 }
             },
             None => {
@@ -143,7 +147,7 @@ impl SubmitCommand {
     }
 }
 impl SubmitCommand {
-    async fn get_submit_info(filename: &str, file_path: &str) -> Result<SubmitInfo, String> {
+    async fn get_submit_info(filename: &str, file_path: &str) -> Result<PreSubmissionInfo, String> {
         let workspace = match CONFIG_DB.get_config("workspace") {
             Ok(workspace) => workspace,
             Err(info) => {
@@ -169,7 +173,7 @@ impl SubmitCommand {
                 return Err(info.to_string());
             }
         };
-        return Ok(SubmitInfo {
+        return Ok(PreSubmissionInfo {
             platform,
             language_id,
             code,
@@ -209,5 +213,21 @@ impl SubmitCommand {
                 return Ok(language_id);
             }
         }
+    }
+}
+
+#[tokio::test]
+async fn test_show_result() {
+    for idx in 0..20 {
+        let submission_info = PostSubmissionInfo {
+            submission_id: random_str::get_string(10, true, true, true, true),
+            problem_identifier: "A".to_string(),
+            verdict: Verdict::Waiting,
+            verdict_info: "Accepted".to_string(),
+            execute_time: "100ms".to_string(),
+            execute_memory: "100MB".to_string(),
+        };
+        SubmitCommand::show_result(&submission_info, idx as u32).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 }
