@@ -13,6 +13,7 @@ use self::language::LanguageCommand;
 use self::model::Commands;
 use self::parse::ParseCommand;
 use self::submit::SubmitCommand;
+use self::test::TestCommand;
 use crate::context::CONTEXT;
 use clap::Parser;
 use colored::Colorize;
@@ -81,7 +82,7 @@ impl Cli {
             Commands::Parse(args) => ParseCommand::handle(args).await,
             Commands::Gen(args) => GenerateCommand::handle(args).await,
             Commands::Submit(args) => SubmitCommand::handle(args).await,
-            Commands::Test(args) => test::TestCommand::handle(args).await,
+            Commands::Test(args) => TestCommand::handle(args).await,
         };
         match res {
             Ok(res) => {
