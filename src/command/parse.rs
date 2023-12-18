@@ -13,8 +13,8 @@ use crate::traits::OnlineJudge;
 pub struct ParseCommand {}
 
 impl ParseCommand {
-    pub async fn get_contest_test_cases<Remote: OnlineJudge>(
-        mut r: Remote,
+    pub async fn get_contest_test_cases<OnlineJudgeT: OnlineJudge>(
+        mut r: OnlineJudgeT,
         contest_identifier: &str,
     ) -> Result<Vec<(String, Vec<TestCase>)>, String> {
         let contest = match r.get_contest(contest_identifier).await {

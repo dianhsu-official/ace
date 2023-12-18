@@ -21,8 +21,8 @@ pub struct SubmitInfo {
     pub contest_identifier: String,
 }
 impl SubmitCommand {
-    async fn submit<T: OnlineJudge>(mut t: T, submit_info: &SubmitInfo) -> Result<String, String> {
-        let submission_id = match t
+    async fn submit<OnlineJudgeT: OnlineJudge>(mut oj: OnlineJudgeT, submit_info: &SubmitInfo) -> Result<String, String> {
+        let submission_id = match oj
             .submit(
                 &submit_info.problem_identifier,
                 &submit_info.code,
@@ -35,7 +35,7 @@ impl SubmitCommand {
                 return Err(info);
             }
         };
-        let mut submission_info = match t
+        let mut submission_info = match oj
             .retrive_result(&submit_info.problem_identifier, &submission_id)
             .await
         {
@@ -49,7 +49,7 @@ impl SubmitCommand {
             retry_times -= 1;
             print!("...");
             thread::sleep(Duration::from_secs(1));
-            submission_info = match t
+            submission_info = match oj
                 .retrive_result(&submit_info.problem_identifier, &submission_id)
                 .await
             {

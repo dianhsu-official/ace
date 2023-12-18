@@ -4,9 +4,10 @@ version = 3
 
 [[package]]
 name = "ace"
-version = "0.1.20"
+version = "0.1.21"
 dependencies = [
  "aes",
+ "ansi-escapes",
  "async-std",
  "async-trait",
  "cbc",
@@ -101,6 +102,12 @@ checksum = "819e7219dbd41043ac279b19830f2efc897156490d7fd6ea916720117ee66311"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "ansi-escapes"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e3c0daaaae24df5995734b689627f8fa02101bc5bbc768be3055b66a010d7af"
 
 [[package]]
 name = "anstream"

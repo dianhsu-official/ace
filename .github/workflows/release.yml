@@ -32,8 +32,6 @@ jobs:
       tag_name: "v${{ steps.read_toml.outputs.value }}"
     
   build:
-    needs: new_tag
-    if: ${{ needs.new_tag.outputs.tag_exists == 'false' }}
     env:
       RUST_BACKTRACE: full
     strategy:
