@@ -158,8 +158,8 @@ impl HtmlParser {
     }
     pub fn parse_submission_page(
         submission_id: &str,
-        contest_id: &str,
-        problem_id: &str,
+        contest_identifier: &str,
+        problem_identifier: &str,
         resp: &str,
     ) -> Result<PostSubmissionInfo, String> {
         let document = Html::parse_document(&resp);
@@ -187,7 +187,8 @@ impl HtmlParser {
             return Err(format!("Td count is not 11, but {}", vec.len()));
         }
         post_submission_info.submission_id = submission_id.to_string();
-        post_submission_info.problem_identifier = format!("{}{}", contest_id, problem_id);
+        post_submission_info.contest_identifier = contest_identifier.to_string();
+        post_submission_info.problem_identifier = problem_identifier.to_string();
         post_submission_info.verdict_info = vec[4].text().collect::<String>().trim().to_string();
         if post_submission_info.verdict_info.contains("Running")
             || post_submission_info.verdict_info.contains("queue")

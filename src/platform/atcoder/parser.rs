@@ -9,6 +9,7 @@ pub struct HtmlParser {}
 
 impl HtmlParser {
     pub fn parse_submission_page(
+        contest_identifier: &str,
         problem_identifier: &str,
         submission_id: &str,
         resp: &str,
@@ -55,6 +56,7 @@ impl HtmlParser {
         }
         let mut submission_info = PostSubmissionInfo::new();
         submission_info.submission_id = String::from(submission_id);
+        submission_info.contest_identifier = String::from(contest_identifier);
         submission_info.problem_identifier = String::from(problem_identifier);
         submission_info.verdict_info = status;
         submission_info.execute_time = execute_time;
@@ -281,9 +283,10 @@ impl HtmlParser {
 fn test_parse_submission_page() {
     let content = std::fs::read_to_string("assets/atcoder/submission_page.html").unwrap();
     let submission_info =
-        HtmlParser::parse_submission_page("abc321_b", "46033672", &content).unwrap();
+        HtmlParser::parse_submission_page("abc321", "b", "46033672", &content).unwrap();
     assert_eq!(submission_info.submission_id, "46033672");
-    assert_eq!(submission_info.problem_identifier, "abc321_b");
+    assert_eq!(submission_info.contest_identifier, "abc321");
+    assert_eq!(submission_info.problem_identifier, "b");
     assert_eq!(submission_info.verdict_info, "WA");
 }
 
