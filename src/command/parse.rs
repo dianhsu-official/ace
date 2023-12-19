@@ -6,50 +6,11 @@ use colored::Colorize;
 use super::model::ParseArgs;
 use crate::constants::PLATFORM_MAP;
 use crate::database::CONFIG_DB;
-use crate::model::{ContestStatus, Platform, TestCase};
-use crate::platform::{atcoder::AtCoder, codeforces::Codeforces};
-use crate::traits::OnlineJudge;
+use crate::platform::OnlineJudge;
 
 pub struct ParseCommand {}
 
 impl ParseCommand {
-    pub async fn get_contest_test_cases<OnlineJudgeT: OnlineJudge>(
-        mut oj: OnlineJudgeT,
-        contest_identifier: &str,
-    ) -> Result<Vec<(String, Vec<TestCase>)>, String> {
-        let contest = match oj.get_contest(contest_identifier).await {
-            Ok(contest) => contest,
-            Err(info) => {
-                return Err(info);
-            }
-        };
-        let mut contest_test_cases = Vec::new();
-        if contest.status != ContestStatus::NotStarted {
-            let problem_infos = match oj.get_problems(contest_identifier).await {
-                Ok(problem_infos) => problem_infos,
-                Err(info) => {
-                    return Err(info);
-                }
-            };
-            for problem_info in problem_infos {
-                let test_cases = match oj.get_test_cases(&problem_info[1]).await {
-                    Ok(test_cases) => test_cases,
-                    Err(info) => {
-                        return Err(info);
-                    }
-                };
-                println!(
-                    "Grab test case for {} success.",
-                    problem_info[0].bright_blue()
-                );
-                let problem_identifier = problem_info[0].clone();
-                contest_test_cases.push((problem_identifier, test_cases));
-            }
-        } else {
-            return Err(format!("Contest {} not started", contest_identifier));
-        }
-        return Ok(contest_test_cases);
-    }
     pub async fn handle(args: ParseArgs) -> Result<String, String> {
         let real_platform = match PLATFORM_MAP.get(args.platform.as_str()) {
             Some(platform) => *platform,
@@ -57,29 +18,16 @@ impl ParseCommand {
                 return Err(format!("Platform {} not found", args.platform));
             }
         };
-        let contest_test_cases = match real_platform {
-            Platform::Codeforces => {
-                let cf = match Codeforces::new() {
-                    Ok(cf) => cf,
-                    Err(info) => {
-                        return Err(info);
-                    }
-                };
-                match Self::get_contest_test_cases(cf, &args.contest_identifier).await {
-                    Ok(test_cases) => test_cases,
-                    Err(info) => return Err(info),
-                }
-            }
-            Platform::AtCoder => {
-                let atc = match AtCoder::new() {
-                    Ok(atc) => atc,
-                    Err(info) => return Err(info),
-                };
-                match Self::get_contest_test_cases(atc, &args.contest_identifier).await {
-                    Ok(test_cases) => test_cases,
-                    Err(info) => return Err(info),
-                }
-            }
+        let account_info = match CONFIG_DB.get_default_account(real_platform) {
+            Ok(account_info) => account_info,
+            Err(info) => {
+                return Err(info);
+            },
+        };
+        let mut oj = OnlineJudge::new(account_info, real_platform);
+        let contest_test_cases = match oj.get_contest_test_cases(&args.contest_identifier).await {
+            Ok(test_cases) => test_cases,
+            Err(info) => return Err(info),
         };
         let platform_str = real_platform.to_string();
         let workspace = match CONFIG_DB.get_config("workspace") {
