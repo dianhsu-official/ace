@@ -3,7 +3,10 @@
 {
 	"name": "Rust",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "rust",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": "."
+	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
