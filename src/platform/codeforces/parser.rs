@@ -145,7 +145,7 @@ impl HtmlParser {
         }
         return Ok(problems);
     }
-    pub fn parse_recent_submission(resp: &str) -> Result<String, String> {
+    pub fn parse_recent_submission_id(resp: &str) -> Result<String, String> {
         let re = match Regex::new(r#"submissionId="(\d+)"#) {
             Ok(re) => re,
             Err(_) => return Err(String::from("Create regex failed.")),
@@ -287,9 +287,9 @@ fn test_parse_problem_list() {
     assert_eq!(problems.len(), 7);
 }
 #[test]
-fn test_parse_recent_submission() {
+fn test_parse_recent_submission_id() {
     let content = std::fs::read_to_string("assets/codeforces/recent_submission.html").unwrap();
-    let submission_id = HtmlParser::parse_recent_submission(&content).unwrap();
+    let submission_id = HtmlParser::parse_recent_submission_id(&content).unwrap();
     assert_eq!(submission_id, "219682893");
 }
 #[test]

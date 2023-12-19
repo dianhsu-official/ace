@@ -43,15 +43,19 @@ impl Utility {
         let parsed_time = Utc.from_utc_datetime(&dt_with_tz.naive_utc());
         return Ok(parsed_time);
     }
-    pub fn get_csrf(resp: &str) -> Option<String> {
+    pub fn get_csrf(resp: &str) -> Result<String, String> {
         let re = match regex::Regex::new(r#"var csrfToken = "([\S]+)""#) {
             Ok(re) => re,
-            Err(_) => return None,
+            Err(_) => {
+                return Err(String::from("Failed to create regex."));
+            },
         };
         let caps = match re.captures(resp) {
             Some(caps) => caps,
-            None => return None,
+            None => {
+                return Err(String::from("Failed to find csrf token."));
+            },
         };
-        return Some(String::from(&caps[1]));
+        return Ok(String::from(&caps[1]));
     }
 }

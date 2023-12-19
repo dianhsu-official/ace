@@ -5,10 +5,7 @@ use super::model::SubmitArgs;
 use crate::{
     database::CONFIG_DB,
     model::{Platform, PostSubmissionInfo, Verdict},
-    platform::atcoder::AtCoder,
-    platform::codeforces::Codeforces,
-    traits::OnlineJudge,
-    utility::Utility,
+    utility::Utility, platform::OnlineJudge
 };
 use std::env::current_dir;
 use tokio::fs;
@@ -38,8 +35,8 @@ impl SubmitCommand {
         }
         table.printstd();
     }
-    async fn submit<OnlineJudgeT: OnlineJudge>(
-        mut oj: OnlineJudgeT,
+    async fn submit(
+        mut oj: OnlineJudge,
         submit_info: &PreSubmissionInfo,
     ) -> Result<String, String> {
         let submission_id = match oj
@@ -109,41 +106,26 @@ impl SubmitCommand {
         };
         let pre_submission_info = match current_dir.join(filename.clone()).to_str() {
             Some(file_path) => match Self::get_submit_info(&filename, file_path).await {
-                Ok(pre_submission_info) => Some(pre_submission_info),
+                Ok(pre_submission_info) => pre_submission_info,
                 Err(info) => {
                     log::error!("{}", info);
                     return Err(info);
                 }
             },
-            None => None,
+            None => {
+                return Err("Can't get current path".to_string());
+            },
         };
         log::info!("{:?}", pre_submission_info);
-
-        match pre_submission_info {
-            Some(pre_submission_info) => match pre_submission_info.platform {
-                Platform::Codeforces => {
-                    let cf = match Codeforces::new() {
-                        Ok(cf) => cf,
-                        Err(info) => {
-                            return Err(info);
-                        }
-                    };
-                    return Self::submit(cf, &pre_submission_info).await;
-                }
-                Platform::AtCoder => {
-                    let atc = match AtCoder::new() {
-                        Ok(atc) => atc,
-                        Err(info) => {
-                            return Err(info);
-                        }
-                    };
-                    return Self::submit(atc, &pre_submission_info).await;
-                }
-            },
-            None => {
-                return Err("Cannot get language id".to_string());
+        let account_info = match CONFIG_DB.get_default_account(pre_submission_info.platform) {
+            Ok(account_info) => account_info,
+            Err(info) => {
+                return Err(info);
             }
-        }
+        };
+
+        let oj = OnlineJudge::new(account_info, pre_submission_info.platform);
+        return Self::submit(oj, &pre_submission_info).await;
     }
 }
 impl SubmitCommand {
