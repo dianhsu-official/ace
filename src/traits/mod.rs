@@ -1,4 +1,4 @@
-use crate::model::{Contest, PlatformLanguage, SubmissionInfo, TestCase};
+use crate::model::{Contest, PlatformLanguage, PostSubmissionInfo, TestCase};
 
 #[async_trait::async_trait]
 pub trait OnlineJudge {
@@ -17,7 +17,7 @@ pub trait OnlineJudge {
         &mut self,
         problem_identifier: &str,
         submission_id: &str,
-    ) -> Result<SubmissionInfo, String>;
+    ) -> Result<PostSubmissionInfo, String>;
     async fn get_contest(&mut self, contest_identifier: &str) -> Result<Contest, String>;
     fn save_cookies(&mut self) -> Result<(), String>;
     fn get_platform_languages() -> Vec<PlatformLanguage>;

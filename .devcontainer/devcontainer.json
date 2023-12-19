@@ -3,7 +3,10 @@
 {
 	"name": "Rust",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "rust",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": "."
+	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -14,7 +17,8 @@
 				"serayuzgur.crates",
 				"tamasfe.even-better-toml",
 				"mutantdino.resourcemonitor",
-				"MS-CEINTL.vscode-language-pack-zh-hans"
+				"MS-CEINTL.vscode-language-pack-zh-hans",
+				"github.vscode-github-actions"
 			]
 		}
 	}

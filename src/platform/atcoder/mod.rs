@@ -1,6 +1,6 @@
 use crate::database::CONFIG_DB;
 use crate::model::PlatformLanguage;
-use crate::model::{Contest, SubmissionInfo};
+use crate::model::{Contest, PostSubmissionInfo};
 use crate::model::{Platform, TestCase};
 use crate::traits::OnlineJudge;
 use crate::utility::http_client::HttpClient;
@@ -123,7 +123,7 @@ impl OnlineJudge for AtCoder {
         &mut self,
         problem_identifier: &str,
         submission_id: &str,
-    ) -> Result<SubmissionInfo, String> {
+    ) -> Result<PostSubmissionInfo, String> {
         if let Err(info) = self.login().await{
             return Err(info);
         }

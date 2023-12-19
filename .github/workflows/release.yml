@@ -1,12 +1,36 @@
 name: ACE Release
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  new_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: SebRollen/toml-action@v1.0.2
+        id: read_toml
+        with:
+          file: 'Cargo.toml'
+          field: 'package.version'
+      
+      - uses: rickstaa/action-create-tag@v1
+        id: "tag_create"
+        with:
+          tag: "v${{ steps.read_toml.outputs.value }}"
+          tag_exists_error: false
+          message: "Release ${{ steps.read_toml.outputs.value }}"
+    outputs:
+      tag_exists: ${{ steps.tag_create.outputs.tag_exists }}
+      tag_name: "v${{ steps.read_toml.outputs.value }}"
+    
   build:
     env:
       RUST_BACKTRACE: full
@@ -16,34 +40,31 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             output: ace
-            dist: ace-linux-amd64
+            dist: ace-linux-amd64.zip
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             output: ace
-            dist: ace-linux-arm64
+            dist: ace-linux-arm64.zip
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             output: ace.exe
-            dist: ace-windows-amd64.exe
+            dist: ace-windows-amd64.zip
           - os: macos-latest
             target: x86_64-apple-darwin
             output: ace
-            dist: ace-macos-amd64
+            dist: ace-macos-amd64.zip
           - os: macos-latest
             target: aarch64-apple-darwin
             output: ace
-            dist: ace-macos-arm64
+            dist: ace-macos-arm64.zip
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
+      uses: ATiltedTree/setup-rust@v1
       with:
-        profile: minimal
-        target: ${{ matrix.target }}
-        toolchain: nightly
-        default: true
-        override: true
+        rust-version: nightly
+        targets: ${{ matrix.target }}
     
     - name: Install cross
       run: cargo install cross
@@ -58,11 +79,45 @@ jobs:
       timeout-minutes: 120
       run: cross build -r --target ${{ matrix.target }}
 
-    - name: Rename file
-      run: mv target/${{ matrix.target }}/release/${{ matrix.output }} ./${{ matrix.dist }}
+    - name: Move file
+      run: mv target/${{ matrix.target }}/release/${{ matrix.output }} ./${{ matrix.output }}
+    - name: Rename file not on windows
+      if: ${{ !contains(matrix.os, 'windows') }}
+      run: zip ${{ matrix.dist }} ${{ matrix.output }}
+    - name: Rename file on windows
+      if: ${{ contains(matrix.os, 'windows') }}
+      run: powershell Compress-Archive -Path ${{ matrix.output }} -DestinationPath ${{ matrix.dist }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with: 
-        name: ${{ matrix.dist }}
+        name: my-artifact
         path: ${{ matrix.dist }}
+  release:
+    if: ${{ needs.new_tag.outputs.tag_exists == 'false' }}
+    runs-on: ubuntu-latest
+    needs: 
+      - build
+      - new_tag
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ needs.new_tag.outputs.tag_name }}
+    - name: Show tags
+      run: git tag -l
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: my-artifact
+        path: artifacts
+    - name: Display structure of downloaded files
+      run: ls -al artifacts
+    - name: Create release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: artifacts/*
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ needs.new_tag.outputs.tag_name }}
+        generateReleaseNotes: true
+        draft: false
+        prerelease: false

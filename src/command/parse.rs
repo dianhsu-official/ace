@@ -13,11 +13,11 @@ use crate::traits::OnlineJudge;
 pub struct ParseCommand {}
 
 impl ParseCommand {
-    pub async fn get_contest_test_cases<Remote: OnlineJudge>(
-        mut r: Remote,
+    pub async fn get_contest_test_cases<OnlineJudgeT: OnlineJudge>(
+        mut oj: OnlineJudgeT,
         contest_identifier: &str,
     ) -> Result<Vec<(String, Vec<TestCase>)>, String> {
-        let contest = match r.get_contest(contest_identifier).await {
+        let contest = match oj.get_contest(contest_identifier).await {
             Ok(contest) => contest,
             Err(info) => {
                 return Err(info);
@@ -25,14 +25,14 @@ impl ParseCommand {
         };
         let mut contest_test_cases = Vec::new();
         if contest.status != ContestStatus::NotStarted {
-            let problem_infos = match r.get_problems(contest_identifier).await {
+            let problem_infos = match oj.get_problems(contest_identifier).await {
                 Ok(problem_infos) => problem_infos,
                 Err(info) => {
                     return Err(info);
                 }
             };
             for problem_info in problem_infos {
-                let test_cases = match r.get_test_cases(&problem_info[1]).await {
+                let test_cases = match oj.get_test_cases(&problem_info[1]).await {
                     Ok(test_cases) => test_cases,
                     Err(info) => {
                         return Err(info);

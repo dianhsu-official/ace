@@ -13,7 +13,7 @@ pub enum Verdict {
     Resulted = 1, // Judge finished
 }
 #[derive(Debug)]
-pub struct SubmissionInfo {
+pub struct PostSubmissionInfo {
     pub submission_id: String,
     pub problem_identifier: String,
     pub verdict: Verdict,
@@ -21,9 +21,9 @@ pub struct SubmissionInfo {
     pub execute_time: String,
     pub execute_memory: String,
 }
-impl SubmissionInfo {
-    pub fn new() -> SubmissionInfo {
-        SubmissionInfo {
+impl PostSubmissionInfo {
+    pub fn new() -> PostSubmissionInfo {
+        PostSubmissionInfo {
             submission_id: String::new(),
             problem_identifier: String::new(),
             verdict: Verdict::Waiting,
