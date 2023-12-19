@@ -22,6 +22,7 @@ impl SubmitCommand {
     async fn show_result(submission_info: &PostSubmissionInfo, reties: u32) {
         let mut table = table!([],
             [b -> "submission id", submission_info.submission_id],
+            [b -> "contest", submission_info.contest_identifier],
             [b -> "problem", submission_info.problem_identifier],
             [b -> "verdict", submission_info.verdict_info],
             [b -> "execute time", submission_info.execute_time],
@@ -203,6 +204,7 @@ async fn test_show_result() {
     for idx in 0..20 {
         let submission_info = PostSubmissionInfo {
             submission_id: random_str::get_string(10, true, true, true, true),
+            contest_identifier: "123789".to_string(),
             problem_identifier: "A".to_string(),
             verdict: Verdict::Waiting,
             verdict_info: "Accepted".to_string(),

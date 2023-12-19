@@ -15,6 +15,7 @@ pub enum Verdict {
 #[derive(Debug)]
 pub struct PostSubmissionInfo {
     pub submission_id: String,
+    pub contest_identifier: String,
     pub problem_identifier: String,
     pub verdict: Verdict,
     pub verdict_info: String,
@@ -25,6 +26,7 @@ impl PostSubmissionInfo {
     pub fn new() -> PostSubmissionInfo {
         PostSubmissionInfo {
             submission_id: String::new(),
+            contest_identifier: String::new(),
             problem_identifier: String::new(),
             verdict: Verdict::Waiting,
             verdict_info: String::new(),

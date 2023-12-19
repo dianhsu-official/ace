@@ -93,12 +93,12 @@ impl OnlineJudgeBehavior for AtCoder {
     }
 
     fn parse_submission_page(
-        _contest_identifier: &str,
+        contest_identifier: &str,
         problem_identifier: &str,
         submission_id: &str,
         resp: &str,
     ) -> Result<PostSubmissionInfo, String> {
-        return HtmlParser::parse_submission_page(problem_identifier, submission_id, resp);
+        return HtmlParser::parse_submission_page(contest_identifier, problem_identifier, submission_id, resp);
     }
 
     fn parse_recent_submission_id(resp: &str) -> Result<String, String> {
