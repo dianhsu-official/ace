@@ -1,12 +1,11 @@
-use colored::Colorize;
-use inquire::Select;
-
+use super::model::TestArgs;
 use crate::context::CONTEXT;
 use crate::database::CONFIG_DB;
 use crate::snippet::Snippet;
+use crate::utility::diff::Difference;
 use crate::utility::Utility;
-
-use super::model::TestArgs;
+use colored::Colorize;
+use inquire::Select;
 use std::env::current_dir;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -212,13 +211,12 @@ impl TestCommand {
                             return Err(info.to_string());
                         }
                     }
-                    if stdout_str != file_out {
-                        println!("Case {} test failed", input_file.bright_blue());
-                        println!("Real output: \n{}", stdout_str);
-                        println!("Expect output: \n{}", file_out);
-                        return Err(format!("Test failed on case {}", input_file));
-                    } else {
-                        println!("Case {} test success", input_file.bright_blue());
+                    let diff = Difference::get_diff(&file_out, &stdout_str);
+                    if diff {
+                        return Err(format!(
+                            "Test failed with input file: {}",
+                            input_file.bright_blue()
+                        ));
                     }
                 }
                 None => {
