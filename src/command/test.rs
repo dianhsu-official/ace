@@ -7,6 +7,7 @@ use inquire::Select;
 use similar::{ChangeTag, TextDiff};
 
 use super::model::TestArgs;
+use crate::utility::diff::Difference;
 use std::env::current_dir;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -212,19 +213,12 @@ impl TestCommand {
                             return Err(info.to_string());
                         }
                     }
-                    let diff = TextDiff::from_lines(&stdout_str, &file_out);
-                    if diff.ratio() != 1.0 {
-                        println!("Case {} test failed", input_file.bright_blue());
-                        for change in diff.iter_all_changes() {
-                            match change.tag() {
-                                ChangeTag::Delete => print!("{}", format!("-{}", change).red()),
-                                ChangeTag::Equal => print!("{}", format!(" {}", change)),
-                                ChangeTag::Insert => print!("{}", format!("+{}", change).green()),
-                            };
-                        }
-                        return Err(format!("Test failed on case {}", input_file));
-                    } else {
-                        println!("Case {} test success", input_file.bright_blue());
+                    let diff = Difference::get_diff(&file_out, &stdout_str);
+                    if diff {
+                        return Err(format!(
+                            "Test failed with input file: {}",
+                            input_file.bright_blue()
+                        ));
                     }
                 }
                 None => {
