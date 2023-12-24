@@ -145,7 +145,7 @@ impl HtmlParser {
         }
         return Ok(problems);
     }
-    pub fn parse_recent_submission(resp: &str) -> Result<String, String> {
+    pub fn parse_recent_submission_id(resp: &str) -> Result<String, String> {
         let re = match Regex::new(r#"submissionId="(\d+)"#) {
             Ok(re) => re,
             Err(_) => return Err(String::from("Create regex failed.")),
@@ -158,8 +158,8 @@ impl HtmlParser {
     }
     pub fn parse_submission_page(
         submission_id: &str,
-        contest_id: &str,
-        problem_id: &str,
+        contest_identifier: &str,
+        problem_identifier: &str,
         resp: &str,
     ) -> Result<PostSubmissionInfo, String> {
         let document = Html::parse_document(&resp);
@@ -187,7 +187,8 @@ impl HtmlParser {
             return Err(format!("Td count is not 11, but {}", vec.len()));
         }
         post_submission_info.submission_id = submission_id.to_string();
-        post_submission_info.problem_identifier = format!("{}{}", contest_id, problem_id);
+        post_submission_info.contest_identifier = contest_identifier.to_string();
+        post_submission_info.problem_identifier = problem_identifier.to_string();
         post_submission_info.verdict_info = vec[4].text().collect::<String>().trim().to_string();
         if post_submission_info.verdict_info.contains("Running")
             || post_submission_info.verdict_info.contains("queue")
@@ -287,9 +288,9 @@ fn test_parse_problem_list() {
     assert_eq!(problems.len(), 7);
 }
 #[test]
-fn test_parse_recent_submission() {
+fn test_parse_recent_submission_id() {
     let content = std::fs::read_to_string("assets/codeforces/recent_submission.html").unwrap();
-    let submission_id = HtmlParser::parse_recent_submission(&content).unwrap();
+    let submission_id = HtmlParser::parse_recent_submission_id(&content).unwrap();
     assert_eq!(submission_id, "219682893");
 }
 #[test]

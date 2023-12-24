@@ -18,7 +18,8 @@
 				"tamasfe.even-better-toml",
 				"mutantdino.resourcemonitor",
 				"MS-CEINTL.vscode-language-pack-zh-hans",
-				"github.vscode-github-actions"
+				"github.vscode-github-actions",
+				"eamodio.gitlens"
 			]
 		}
 	}

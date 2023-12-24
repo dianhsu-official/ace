@@ -5,7 +5,6 @@ mod database;
 mod model;
 mod platform;
 mod snippet;
-mod traits;
 mod utility;
 #[tokio::main]
 async fn main() {

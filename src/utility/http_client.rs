@@ -54,7 +54,7 @@ impl HttpClient {
     pub async fn post_form(
         &mut self,
         url: &str,
-        form: &HashMap<&str, &str>,
+        form: &HashMap<String, String>,
     ) -> Result<String, String> {
         log::info!("post data {:?} to {}.", form, url);
         let res = match self.client.post(url).form(&form).send().await {
