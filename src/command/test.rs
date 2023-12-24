@@ -1,13 +1,11 @@
+use super::model::TestArgs;
 use crate::context::CONTEXT;
 use crate::database::CONFIG_DB;
 use crate::snippet::Snippet;
+use crate::utility::diff::Difference;
 use crate::utility::Utility;
 use colored::Colorize;
 use inquire::Select;
-use similar::{ChangeTag, TextDiff};
-
-use super::model::TestArgs;
-use crate::utility::diff::Difference;
 use std::env::current_dir;
 use std::io::{Read, Write};
 use std::path::Path;
