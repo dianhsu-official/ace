@@ -24,12 +24,12 @@ jobs:
       - uses: rickstaa/action-create-tag@v1
         id: "tag_create"
         with:
-          tag: "v${{ steps.read_toml.outputs.value }}"
+          tag: "${{ steps.read_toml.outputs.value }}"
           tag_exists_error: false
           message: "Release ${{ steps.read_toml.outputs.value }}"
     outputs:
       tag_exists: ${{ steps.tag_create.outputs.tag_exists }}
-      tag_name: "v${{ steps.read_toml.outputs.value }}"
+      tag_name: "${{ steps.read_toml.outputs.value }}"
     
   build:
     env:
