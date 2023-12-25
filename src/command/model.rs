@@ -17,6 +17,8 @@ pub enum Commands {
     Submit(SubmitArgs),
     /// Run the code locally, and compare the output with the answer
     Test(TestArgs),
+    /// Setup the ace
+    Setup(SetupArgs),
 }
 
 #[derive(Subcommand)]
@@ -97,3 +99,6 @@ pub struct SubmitArgs {
 pub struct TestArgs {
     pub filename: Option<String>,
 }
+
+#[derive(Args)]
+pub struct SetupArgs {}

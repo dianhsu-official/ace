@@ -31,7 +31,30 @@ CREATE TABLE IF NOT EXISTS language (
     clear_command TEXT default \"\"
 );
 ";
+const DROP_TABLES: &str = "
+DELETE TABLE IF EXISTS config;
+DELETE TABLE IF EXISTS account;
+DELETE TABLE IF EXISTS language;
+";
 impl ConfigDatabase {
+    pub fn drop_tables(&self) {
+        match self.connection.execute(DROP_TABLES) {
+            Ok(_) => {}
+            Err(info) => {
+                log::error!("{}", info);
+                exit(1);
+            }
+        }
+    }
+    pub fn create_tables(&self) {
+        match self.connection.execute(INIT_QUERY) {
+            Ok(_) => {}
+            Err(info) => {
+                log::error!("{}", info);
+                exit(1);
+            }
+        }
+    }
     pub fn create_from_path(config_path: &Path) -> Self {
         let connection: sqlite::ConnectionThreadSafe =
             match sqlite::Connection::open_thread_safe(config_path) {
@@ -46,26 +69,6 @@ impl ConfigDatabase {
             Err(info) => {
                 log::error!("{}", info);
                 exit(1);
-            }
-        }
-        let workspace = match home::home_dir() {
-            Some(home_path) => {
-                let workspace = home_path.join("ace");
-                match workspace.to_str() {
-                    Some(workspace) => Some(workspace.to_string()),
-                    None => None,
-                }
-            }
-            None => None,
-        };
-        if let Some(workspace_dir) = workspace {
-            let query = format!(
-                "INSERT OR IGNORE INTO config (name, value) VALUES ('workspace', '{}')",
-                workspace_dir
-            );
-            match connection.execute(query.as_str()) {
-                Ok(_) => {}
-                Err(_) => {}
             }
         }
         Self { connection }
