@@ -280,6 +280,7 @@ impl OnlineJudge {
                 return Err(info);
             }
         };
+        println!("Get contest {} success.", contest_identifier.bright_blue());
         let mut contest_test_cases = Vec::new();
         if contest.status != ContestStatus::NotStarted {
             let problem_infos = match self.get_problems(contest_identifier).await {
@@ -296,7 +297,7 @@ impl OnlineJudge {
                     }
                 };
                 println!(
-                    "Grab test case for {} success.",
+                    "Get test case for {} success.",
                     problem_info[0].bright_blue()
                 );
                 let problem_identifier = problem_info[0].clone();

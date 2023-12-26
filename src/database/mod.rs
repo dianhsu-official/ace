@@ -32,9 +32,9 @@ CREATE TABLE IF NOT EXISTS language (
 );
 ";
 const DROP_TABLES: &str = "
-DELETE TABLE IF EXISTS config;
-DELETE TABLE IF EXISTS account;
-DELETE TABLE IF EXISTS language;
+DROP TABLE IF EXISTS config;
+DROP TABLE IF EXISTS account;
+DROP TABLE IF EXISTS language;
 ";
 impl ConfigDatabase {
     pub fn drop_tables(&self) {

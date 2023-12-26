@@ -22,7 +22,7 @@ impl ParseCommand {
             Ok(account_info) => account_info,
             Err(info) => {
                 return Err(info);
-            },
+            }
         };
         let mut oj = OnlineJudge::new(account_info, real_platform);
         let contest_test_cases = match oj.get_contest_test_cases(&args.contest_identifier).await {
