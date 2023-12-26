@@ -153,7 +153,7 @@ impl TestCommand {
         clear_command: &str,
     ) -> Result<String, String> {
         // Run compile command
-        println!("Compile with command: {}", compile_command.bright_blue());
+        log::info!("Compile with command: {}", compile_command.bright_blue());
         if let Err(info) = Self::run_no_input_command(compile_command) {
             return Err(info);
         }
@@ -165,7 +165,7 @@ impl TestCommand {
         };
 
         // Run test command
-        println!("Test with command: {}", execute_command.bright_blue());
+        log::info!("Test with command: {}", execute_command.bright_blue());
         for case in test_cases {
             let input_file = case[0].clone();
             let output_file = case[1].clone();
@@ -211,8 +211,11 @@ impl TestCommand {
                             return Err(info.to_string());
                         }
                     }
-                    let diff = Difference::get_diff(&file_out, &stdout_str);
-                    if diff {
+                    let same = Difference::is_same(&file_out, &stdout_str);
+                    if same {
+                        println!("Test success with input file: {}", input_file.bright_blue());
+                    } else {
+                        println!("Test failed with input file: {}", input_file.red());
                         return Err(format!(
                             "Test failed with input file: {}",
                             input_file.bright_blue()
@@ -226,7 +229,7 @@ impl TestCommand {
         }
 
         // Run clear command
-        println!("Clear with command: {}", clear_command.bright_blue());
+        log::info!("Clear with command: {}", clear_command.bright_blue());
         if let Err(info) = Self::run_no_input_command(clear_command) {
             return Err(info);
         }

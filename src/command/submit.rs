@@ -5,9 +5,10 @@ use super::model::SubmitArgs;
 use crate::{
     database::CONFIG_DB,
     model::{Platform, PostSubmissionInfo, Verdict},
-    utility::Utility, platform::OnlineJudge
+    platform::OnlineJudge,
+    utility::Utility,
 };
-use std::env::current_dir;
+use std::{env::current_dir, vec};
 use tokio::fs;
 pub struct SubmitCommand {}
 #[derive(Debug)]
@@ -20,14 +21,24 @@ pub struct PreSubmissionInfo {
 }
 impl SubmitCommand {
     async fn show_result(submission_info: &PostSubmissionInfo, reties: u32) {
-        let mut table = table!([],
-            [b -> "submission id", submission_info.submission_id],
-            [b -> "contest", submission_info.contest_identifier],
-            [b -> "problem", submission_info.problem_identifier],
-            [b -> "verdict", submission_info.verdict_info],
-            [b -> "execute time", submission_info.execute_time],
-            [b -> "execute memory", submission_info.execute_memory]
-        );
+        let mut table = match submission_info.verdict {
+            Verdict::Waiting => table!(
+                ["submission id", submission_info.submission_id],
+                ["contest", submission_info.contest_identifier],
+                ["problem", submission_info.problem_identifier],
+                ["verdict", submission_info.verdict_info],
+                ["execute time", submission_info.execute_time],
+                ["execute memory", submission_info.execute_memory]
+            ),
+            _ => table!(
+                ["submission id", submission_info.submission_id],
+                ["contest", submission_info.contest_identifier],
+                ["problem", submission_info.problem_identifier],
+                ["verdict", b -> submission_info.verdict_info],
+                ["execute time", submission_info.execute_time],
+                ["execute memory", submission_info.execute_memory]
+            ),
+        };
         table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
         let output = table.to_string();
         let lines = output.lines().count() + 1;
@@ -115,7 +126,7 @@ impl SubmitCommand {
             },
             None => {
                 return Err("Can't get current path".to_string());
-            },
+            }
         };
         log::info!("{:?}", pre_submission_info);
         let account_info = match CONFIG_DB.get_default_account(pre_submission_info.platform) {
