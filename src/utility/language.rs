@@ -107,7 +107,7 @@ impl LanguageUtility {
             Ok(_) => Ok(String::from("Set language config success")),
             Err(info) => Err(info),
         };
-        let confirm = match Confirm::new("Set as default language?").prompt() {
+        let confirm = match Confirm::new(format!("Set {} as default language?", language_identifier).as_str()).prompt() {
             Ok(ans) => ans,
             Err(_) => false,
         };
