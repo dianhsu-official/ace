@@ -1,5 +1,5 @@
 use colored::Colorize;
-use inquire::{Select, Text};
+use inquire::{Confirm, Select, Text};
 use strum::IntoEnumIterator;
 
 use crate::platform::OnlineJudge;
@@ -92,7 +92,7 @@ impl LanguageUtility {
                 return Err(info.to_string());
             }
         };
-        match CONFIG_DB.add_lang_config(
+        let res = match CONFIG_DB.add_lang_config(
             &alias,
             &suffix,
             platform,
@@ -106,6 +106,21 @@ impl LanguageUtility {
         ) {
             Ok(_) => Ok(String::from("Set language config success")),
             Err(info) => Err(info),
+        };
+        let confirm = match Confirm::new("Set as default language?").prompt() {
+            Ok(ans) => ans,
+            Err(_) => false,
+        };
+        if confirm {
+            match CONFIG_DB.set_config("default-language", language_identifier.to_string().as_str()) {
+                Ok(_) => {
+                    log::info!("Set default language success");
+                }
+                Err(_) => {
+                    log::info!("Set default language failed");
+                }
+            }
         }
+        return res;
     }
 }
