@@ -1,6 +1,6 @@
+use inquire::Select;
 use std::{env::current_dir, str::FromStr};
 use tokio::fs;
-use inquire::Select;
 
 use crate::{
     constants::ProgramLanguage, context::CONTEXT, database::CONFIG_DB, snippet::Snippet,
@@ -25,10 +25,14 @@ impl GenerateCommand {
             None => match CONFIG_DB.get_config("default-language") {
                 Ok(languge_str) => match ProgramLanguage::from_str(&languge_str) {
                     Ok(language) => language,
-                    Err(_) => return Err("Can't convert default language".to_string()),
+                    Err(_) => {
+                        println!("Can't convert default language");
+                        return Err("Can't convert default language".to_string());
+                    }
                 },
                 Err(_) => {
-                    return Err("Default language not set, Run `ace lang set-default`".to_string());
+                    println!("Default language not set, run `ace lang set-default` to set default language.");
+                    return Err("Default language not set, run `ace lang set-default`".to_string());
                 }
             },
         };
