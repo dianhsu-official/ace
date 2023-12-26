@@ -4,6 +4,7 @@ mod generate;
 mod language;
 pub mod model;
 mod parse;
+mod setup;
 mod submit;
 mod test;
 use self::account::AccountCommand;
@@ -12,6 +13,7 @@ use self::generate::GenerateCommand;
 use self::language::LanguageCommand;
 use self::model::Commands;
 use self::parse::ParseCommand;
+use self::setup::SetupCommand;
 use self::submit::SubmitCommand;
 use self::test::TestCommand;
 use crate::context::CONTEXT;
@@ -83,6 +85,7 @@ impl Cli {
             Commands::Gen(args) => GenerateCommand::handle(args).await,
             Commands::Submit(args) => SubmitCommand::handle(args).await,
             Commands::Test(args) => TestCommand::handle(args).await,
+            Commands::Setup(args) => SetupCommand::handle(args),
         };
         match res {
             Ok(res) => {

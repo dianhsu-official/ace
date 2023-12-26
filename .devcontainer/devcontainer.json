@@ -7,6 +7,13 @@
 		"dockerfile": "Dockerfile",
 		"context": "."
 	},
+	"mounts": [
+		{
+			"source": "ace-volume",
+			"target": "/root/.ace/",
+			"type": "volume"
+		}
+	],
 	"customizations": {
 		"vscode": {
 			"extensions": [

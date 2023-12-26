@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use chrono::DateTime;
+use colored::Colorize;
 use inquire::{min_length, Confirm, MultiSelect, Password, PasswordDisplayMode, Text};
 use prettytable::{Cell, Row, Table};
 
@@ -60,7 +61,13 @@ impl AccountUtility {
         };
         if set_default {
             match CONFIG_DB.set_default_account(platform, &username) {
-                Ok(_) => {}
+                Ok(_) => {
+                    println!(
+                        "Account {} set as default account on {}.",
+                        username.green(),
+                        platform.to_string().green()
+                    );
+                }
                 Err(info) => {
                     return Err(info);
                 }
