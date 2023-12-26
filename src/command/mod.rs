@@ -89,10 +89,10 @@ impl Cli {
         };
         match res {
             Ok(res) => {
-                println!("{}", res.green());
+                log::info!("{}", res);
             }
             Err(info) => {
-                println!("{}", info.red());
+                log::info!("{}", info.red());
             }
         }
         return Ok(());

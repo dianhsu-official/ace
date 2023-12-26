@@ -1,5 +1,6 @@
 use std::fmt;
 
+use colored::Colorize;
 use console::{style, Style};
 
 use similar::{ChangeTag, TextDiff};
@@ -18,8 +19,16 @@ pub struct Difference;
 
 impl Difference {
     #[allow(dead_code)]
-    pub fn get_diff(expect: &str, result: &str) -> bool {
+    pub fn is_same(expect: &str, result: &str) -> bool {
         let diff = TextDiff::from_lines(expect, result);
+        if diff.ratio() != 1.0 {
+            println!(
+                "Expected Answer:\n{}\n\nGot Answer:\n{}\n",
+                expect.dimmed(),
+                result.dimmed()
+            );
+            println!("Difference(Expected & Got):");
+        }
         for (idx, group) in diff.grouped_ops(3).iter().enumerate() {
             if idx > 0 {
                 println!("{:-^1$}", "-", 80);
@@ -50,7 +59,7 @@ impl Difference {
                 }
             }
         }
-        return true;
+        return diff.ratio() == 1.0;
     }
 }
 
@@ -58,5 +67,6 @@ impl Difference {
 fn test_get_diff() {
     let output = "Hello World\nThis is the second line.\nThis is the third.";
     let expect = "Hallo Welt\nThis is the second line.\nThis is life.\nMoar and more";
-    let _ = Difference::get_diff(output, expect);
+    let same = Difference::is_same(output, expect);
+    assert_ne!(same, true);
 }
