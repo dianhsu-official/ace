@@ -1,5 +1,7 @@
 # ACE
-> Developing.
+
+**Deprecated due to Codeforces protected by CloudFlare, I am trying to use Competitive Companion finish parse process.**
+**Please take a look at [ccs](https://github.com/dianhsu-official/ccs) for current status.**
 
 [![ACE](https://github.com/dianhsu/ace/actions/workflows/test.yml/badge.svg)](https://github.com/dianhsu/ace/actions/workflows/test.yml)
 
